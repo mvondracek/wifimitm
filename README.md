@@ -1,32 +1,44 @@
-# You've added your first ReadMe file!
-A README.md file is intended to quickly orient readers to what your project can do.  New to Markdown? [Learn more](http://go.microsoft.com/fwlink/p/?LinkId=524306&clcid=0x409)
+# Automatization of MitM Attack on WiFi Networks
+- [Bachelor Project Specification](#bachelor-project-specification)
+---
 
-## Edit this ReadMe and commit your change to a topic branch
-In Git, branches are cheap.  You should use them whenever you're making changes to your repository.  Edit this file by clicking on the edit icon.
 
-Then make some changes to this ReadMe file.
+## Bachelor Project Specification
+*Bachelor Project Specification/18596/2015/xvondr20*  
+**Brno University of Technology - Faculty of Information Technology**  
+Department of Information Systems, Academic year 2015/2016
 
-> Make some **edits** to _this_ blockquote
+For: **Vondráček Martin**  
+Branch of study: Information Technology  
+Title: **Automatization of MitM Attack on WiFi Networks**  
+Category: Networking
 
-When you are done, click the dropdown arrow next to the save button - that will allow you to commit your changes to a new branch.
+### Instructions for project work
+1. Study different kinds of security approaches used in wireless networks. Focus on known vulnerabilities of individual methods and on tools for exploiting these vulnerabilities.
+2. Consider the possibility of impersonification of specified AP in case that attack on given device is not available.
+3. Utilize existing tools from points 1), 2) and choose the most appropriate one or a set of them, which will be able to realize automatic attack on chosen network.
+4. Implement a tool capable of such automation. This tool will be able to choose the most suitable attack or a sequence of them.
+5. Test the solution during experiments in laboratories. Evaluate the success rate of implemented solution against different kinds of existing AP.
 
-## Create a pull request to contribute your changes back into master
-Pull requests are the way to move changes from a topic branch back into the master branch.
+### Basic references
+- Callegati, F., Cerroni, W. & Ramilli, M., Man-in-the-middle attack to the HTTPS protocol. IEEE Security and Privacy, 7(1), p.78-81. 2009.
+- Dierks, T. & Rescorla, E., 2008. RFC 5246 - The transport layer security (TLS) protocol - Version 1.2. In *Network Working Group, IETF*. pp. 1-105.
 
-Click on the **Pull Requests** page in the **CODE** hub, then click "New Pull Request" to create a new pull request from your topic branch to the master branch.
+### Requirements for the first semester
+Items 1, 2 a 3.
 
-When you are done adding details, click "Create Pull request". Once a pull request is sent, reviewers can see your changes, recommend modifications, or even push follow-up commits.
+**Detailed formal specifications can be found at [http://www.fit.vutbr.cz/info/szz/](http://www.fit.vutbr.cz/info/szz/).**
 
-First time creating a pull request?  [Learn more](http://go.microsoft.com/fwlink/?LinkId=533211&clcid=0x409)
+*The Bachelor Thesis must define its purpose, describe a current state of the art, introduce the theoretical and technical background relevant to the problems solved, and specify what parts have been used from earlier projects or 
+have been taken over from other sources.*
 
-### Congratulations! You've completed the grand tour of the CODE hub!
+*Each student will hand-in printed as well as electronic versions of the technical report, an electronic version of the complete program documentation, program source files, and a functional hardware prototype sample if desired. 
+The information in electronic form will be stored on a standard non-rewritable medium (CD-R, DVD-R, etc.) in formats common at the FIT. In order to allow regular handling, the medium will be securely attached to the printed 
+report.*
 
-# Next steps
+Supervisor: **Pluskal Jan, Ing.**, DIFS FIT BUT  
+Beginning of work: November 1, 2015  
+Date of delivery: May 18, 2016
 
-If you haven't done so yet:
-* [Install Visual Studio](http://go.microsoft.com/fwlink/?LinkId=309297&clcid=0x409&slcid=0x409)
-* [Install Git](http://git-scm.com/downloads)
+---
 
-Then clone this repo to your local machine to get started with your own project.
-
-Happy coding!
