@@ -132,11 +132,10 @@ class WepCracker(object):
     `aircrack-ng[Aircrack-ng] <http://www.aircrack-ng.org/doku.php?id=aircrack-ng>`_
     """
 
-    # TODO (xvondr20) store key file in temp dir?
-
-    def __init__(self, cap_filepath, ap):
+    def __init__(self, cap_filepath, ap, dir_network_path):
         self.cap_filepath = cap_filepath
         self.ap = ap
+        self.dir_network_path = dir_network_path
 
         self.process = None
 
@@ -145,7 +144,7 @@ class WepCracker(object):
                '-a', '1',
                '--bssid', self.ap.bssid,
                '-q',  # If set, no status information is displayed.
-               '-l', self.ap.bssid + '_wepkey.hex',  # Write the key into a file.
+               '-l', os.path.join(self.dir_network_path, 'WEP_key.hex'),  # Write the key into a file.
                self.cap_filepath]
         self.process = subprocess.Popen(cmd)
         logging.debug('WepCracker started')
@@ -164,4 +163,4 @@ class WepCracker(object):
             return exitcode
 
     def has_key(self):
-        return os.path.isfile(self.ap.bssid + '_wepkey.hex')
+        return os.path.isfile(os.path.join(self.dir_network_path, 'WEP_key.hex'))
