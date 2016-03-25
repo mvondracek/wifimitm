@@ -7,10 +7,8 @@ Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
 """
-import logging
-import os
-import subprocess
-import time
+
+from model import *
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
