@@ -71,21 +71,35 @@ class ArpReplay(object):
     `arp-request_reinjection[Aircrack-ng]<http://www.aircrack-ng.org/doku.php?id=arp-request_reinjection>`_
     """
 
-    def __init__(self, interface, ap, attacker_mac):
+    def __init__(self, interface, ap):
         self.interface = interface
         self.ap = ap
-        self.attacker_mac = attacker_mac
 
         self.process = None
+        self.tmp_dir = None
 
-    def start(self):
+    def start(self, source_mac, input_pcap_path=None):
+        """
+        Start ARP Replay attack process.
+        :param source_mac: Source MAC address for replayed ARP packets
+        :param input_pcap_path: Extract ARP packets from this pcap file. If None, packets are captured from interface.
+        """
+        self.tmp_dir = tempfile.TemporaryDirectory()
+
         cmd = ['aireplay-ng',
                '--arpreplay',
                '-b', self.ap.bssid,  # MAC address of access point.
-               '-h', self.attacker_mac,
-               self.interface]
-        self.process = subprocess.Popen(cmd)
-        logging.debug('ArpReplay started')
+               '-h', source_mac]
+        # capture or extract packets?
+        if input_pcap_path:
+            if not os.path.isfile(input_pcap_path):
+                raise FileNotFoundError('File does not exist at provided input_pcap_path.')
+            cmd.append('-r')
+            cmd.append(input_pcap_path)
+        cmd.append(self.interface)
+
+        self.process = subprocess.Popen(cmd, cwd=self.tmp_dir.name)
+        logging.debug('ArpReplay started, cwd=' + self.tmp_dir.name)
 
     def stop(self):
         if self.process:
@@ -98,6 +112,8 @@ class ArpReplay(object):
                 logging.debug('ArpReplay killed')
 
             self.process = None
+            self.tmp_dir.cleanup()
+            self.tmp_dir = None
             return exitcode
 
 
