@@ -90,7 +90,7 @@ class FakeAuthentication(object):
                '-a', self.ap.bssid,
                '-h', self.attacker_mac,
                self.interface]
-        # temp files (write, read) for stdout and stderr, line buffering
+        # temp files (write, read) for stdout and stderr
         self.process_stdout_w = tempfile.NamedTemporaryFile(prefix='fakeauth-stdout', dir=self.tmp_dir)
         self.process_stdout_r = open(self.process_stdout_w.name, 'r')
 
