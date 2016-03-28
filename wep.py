@@ -187,12 +187,61 @@ class ArpReplay(object):
     `arp-request_reinjection[Aircrack-ng]<http://www.aircrack-ng.org/doku.php?id=arp-request_reinjection>`_
     """
 
+    @unique
+    class State(Enum):
+        """
+        ArpReplay process states.
+        """
+        ok = 0  # got ARP requests, sending packets,
+        # Read (\d+) packets (got (\d*[1-9]\d*) ARP requests and (\d*[1-9]\d*) ACKs), sent (\d*[1-9]\d*) packets
+        new = 1  # just started
+        waiting_for_beacon_frame = 2  # 'Waiting for beacon frame'
+        waiting_for_arp_request = 3  # 'Read (\d+) packets (got 0 ARP requests and 0 ACKs), sent 0 packets...(0 pps)'
+        terminated = 100
+
     def __init__(self, interface, ap):
         self.interface = interface
         self.ap = ap
 
         self.process = None
+        self.state = None
+        self.flags = {}
+        self.stats = {}
         self.tmp_dir = None
+
+        # process' stdout, stderr for its writing
+        self.process_stdout_w = None
+        self.process_stderr_w = None
+        # process' stdout, stderr for reading
+        self.process_stdout_r = None
+        self.process_stderr_r = None
+
+        # compiled regular expressions
+        self.cre_ok = re.compile(
+            r'Read (?P<read>\d+) packets \(got (?P<ARPs>\d*[1-9]\d*) ARP requests and (?P<ACKs>\d*[1-9]\d*) ACKs\),'
+            r' sent (?P<sent>\d*[1-9]\d*) packets...\((?P<pps>\d+) pps\)'
+        )
+
+    def __init_flags(self):
+        """
+        Init flags describing state of the running process.
+        Should be called only during start of the process. Flags are set during update_state().
+        """
+        self.flags['deauthenticated'] = False
+        """Flag 'deauthenticated' is set if at least one deauthentication packet was received."""
+
+    def __init_stats(self):
+        """
+        Init stats describing state of the running process.
+        Should be called only during start of the process.
+        """
+        self.stats = {
+            'read': 0,
+            'ACKs': 0,
+            'ARPs': 0,
+            'sent': 0,
+            'pps': 0
+        }
 
     def start(self, source_mac, input_pcap_path=None):
         """
@@ -200,6 +249,9 @@ class ArpReplay(object):
         :param source_mac: Source MAC address for replayed ARP packets
         :param input_pcap_path: Extract ARP packets from this pcap file. If None, packets are captured from interface.
         """
+        self.state = ArpReplay.State.new
+        self.__init_flags()
+        self.__init_stats()
         self.tmp_dir = tempfile.TemporaryDirectory()
 
         cmd = ['aireplay-ng',
@@ -214,8 +266,54 @@ class ArpReplay(object):
             cmd.append(input_pcap_path)
         cmd.append(self.interface)
 
-        self.process = subprocess.Popen(cmd, cwd=self.tmp_dir.name)
-        logging.debug('ArpReplay started, cwd=' + self.tmp_dir.name)
+        # temp files (write, read) for stdout and stderr
+        self.process_stdout_w = tempfile.NamedTemporaryFile(prefix='arpreplay-stdout', dir=self.tmp_dir.name)
+        self.process_stdout_r = open(self.process_stdout_w.name, 'r')
+
+        self.process_stderr_w = tempfile.NamedTemporaryFile(prefix='arpreplay-stderr', dir=self.tmp_dir.name)
+        self.process_stderr_r = open(self.process_stderr_w.name, 'r')
+
+        self.process = subprocess.Popen(cmd, cwd=self.tmp_dir.name,
+                                        stdout=self.process_stdout_w, stderr=self.process_stderr_w,
+                                        universal_newlines=True)
+        logging.debug('ArpReplay started; cwd=' + self.tmp_dir.name + ', ' +
+                      'stdout @ ' + self.process_stdout_w.name +
+                      ', stderr @ ' + self.process_stderr_w.name)
+
+    def update_state(self):
+        """
+        Update state of running process from process' feedback.
+        Read new output from stdout and stderr, check if process is alive. Set appropriate flags and stats.
+        """
+        # check every added line in stdout
+        for line in self.process_stdout_r:
+            if 'Waiting for beacon frame' in line:
+                self.state = ArpReplay.State.waiting_for_beacon_frame
+            elif 'got 0 ARP requests' in line:
+                self.state = ArpReplay.State.waiting_for_arp_request
+            elif 'Notice: got a deauth/disassoc packet. Is the source MAC associated ?' in line:
+                # set flag to notify that at least one deauthentication packet was received since last update
+                self.flags['deauthenticated'] = True
+                logging.debug('ArpReplay received a deauthentication packet!')
+            else:
+                m = self.cre_ok.match(line)
+                if m:
+                    # correct output line detected
+                    self.state = ArpReplay.State.ok
+                    # update stats
+                    self.stats['read'] = m.group('read')
+                    self.stats['ACKs'] = m.group('ACKs')
+                    self.stats['ARPs'] = m.group('ARPs')
+                    self.stats['sent'] = m.group('sent')
+                    self.stats['pps'] = m.group('pps')
+
+        # check stderr
+        # TODO (xvondr20) Does 'aireplay-ng --arpreplay' ever print anything to stderr?
+        assert self.process_stderr_r.read() == ''
+
+        # is process running?
+        if self.process.poll() is not None:
+            self.state = ArpReplay.State.terminated
 
     def stop(self):
         if self.process:
@@ -228,9 +326,39 @@ class ArpReplay(object):
                 logging.debug('ArpReplay killed')
 
             self.process = None
-            self.tmp_dir.cleanup()
-            self.tmp_dir = None
             return exitcode
+
+    def clean(self):
+        """
+        Clean after running process.
+        Running process is stopped, temp files are closed and deleted,
+        :return:
+        """
+        logging.debug('ArpReplay clean')
+        # if the process is running, stop it and then clean
+        if self.process:
+            self.stop()
+        # close opened files
+        self.process_stdout_r.close()
+        self.process_stdout_r = None
+
+        self.process_stdout_w.close()
+        self.process_stdout_w = None
+
+        self.process_stderr_r.close()
+        self.process_stderr_r = None
+
+        self.process_stderr_w.close()
+        self.process_stderr_w = None
+
+        # remove tmp
+        self.tmp_dir.cleanup()
+        self.tmp_dir = None
+
+        # remove state
+        self.state = None
+        self.flags.clear()
+        self.stats.clear()
 
 
 class WepCracker(object):
@@ -331,6 +459,12 @@ class WepAttacker(object):
                 fake_authentication.update_state()
                 logging.debug('FakeAuthentication: ' + str(fake_authentication.state) + ', ' +
                               'flags: ' + str(fake_authentication.flags)
+                              )
+
+                arp_replay.update_state()
+                logging.debug('ArpReplay: ' + str(arp_replay.state) + ', ' +
+                              'flags: ' + str(arp_replay.flags) + ', ' +
+                              'stats: ' + str(arp_replay.stats)
                               )
 
                 logging.debug('#IV = ' + str(capturer.get_iv_sum()))
