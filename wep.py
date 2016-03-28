@@ -9,14 +9,20 @@ Martin Vondracek
 
 #Implementation notes
 - Airodump-ng writes its Text User Interface to stderr, stdout is empty.
+- Aireplay-ng writes to stdout.
 - Feedback from running subprocesses is obtained from their stdout and stderr. Method Popen.communicate() is
   unfortunately not suitable. 'Read data from stdout and stderr, until end-of-file is reached. Wait for process
   to terminate.'
   Reading of stdout and stderr is done continuously while the subprocess is running. This is achieved by that
   the subprocess is writing its stdout and stderr to temporary files. These files are then opened again and continuous
   writing and reading is performed. There's only one writer and one reader per file.
+- Subprocesses' feedback result is available as an update of process' state, flags and stats. State describes current
+  position in a lifecycle of the process. Flags can be set or cleared based on events during life of the process.
+  Flags can be later cleared or set by other parts of the script - after the flag was recognised and appropriate
+  reaction was performed.
 
 """
+import re
 from enum import Enum, unique
 
 from model import *
@@ -251,6 +257,12 @@ class WepCracker(object):
         logging.debug('WepCracker started')
 
     def stop(self):
+        """
+        Stop running process.
+        If the process is stopped or already finished, exitcode is returned.
+        In the case that there was not any process, nothing happens.
+        :return:
+        """
         if self.process:
             exitcode = self.process.poll()
             if exitcode is None:
