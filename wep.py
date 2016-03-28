@@ -316,6 +316,12 @@ class ArpReplay(object):
             self.state = ArpReplay.State.terminated
 
     def stop(self):
+        """
+        Stop running process.
+        If the process is stopped or already finished, exitcode is returned.
+        In the case that there was not any process, nothing happens.
+        :return:
+        """
         if self.process:
             exitcode = self.process.poll()
             if exitcode is None:
