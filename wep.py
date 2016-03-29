@@ -213,6 +213,7 @@ class ArpReplay(object):
         self.flags = {}
         self.stats = {}
         self.tmp_dir = None
+        self.cap_path = None
 
         # process' stdout, stderr for its writing
         self.process_stdout_w = None
@@ -225,6 +226,9 @@ class ArpReplay(object):
         self.cre_ok = re.compile(
             r'Read (?P<read>\d+) packets \(got (?P<ARPs>\d*[1-9]\d*) ARP requests and (?P<ACKs>\d*[1-9]\d*) ACKs\),'
             r' sent (?P<sent>\d*[1-9]\d*) packets...\((?P<pps>\d+) pps\)'
+        )
+        self.cre_cap_filename = re.compile(
+            r'^Saving ARP requests in (?P<cap_filename>replay_arp.+\.cap)$'
         )
 
     def __init_flags(self):
@@ -248,7 +252,7 @@ class ArpReplay(object):
             'pps': 0
         }
 
-    def start(self, source_mac, input_pcap_path=None):
+    def start(self, source_mac):
         """
         Start ARP Replay attack process.
         :param source_mac: Source MAC address for replayed ARP packets
@@ -263,12 +267,10 @@ class ArpReplay(object):
                '--arpreplay',
                '-b', self.ap.bssid,  # MAC address of access point.
                '-h', source_mac]
-        # capture or extract packets?
-        if input_pcap_path:
-            if not os.path.isfile(input_pcap_path):
-                raise FileNotFoundError('File does not exist at provided input_pcap_path.')
+        # capture and extract packets from capture file?
+        if self.ap.has_arp_cap():
             cmd.append('-r')
-            cmd.append(input_pcap_path)
+            cmd.append(self.ap.arp_cap_path)
         cmd.append(self.interface)
 
         # temp files (write, read) for stdout and stderr
@@ -311,6 +313,15 @@ class ArpReplay(object):
                     self.stats['ARPs'] = m.group('ARPs')
                     self.stats['sent'] = m.group('sent')
                     self.stats['pps'] = m.group('pps')
+                    # save ARP Requests if the network does not have ARP capture file already
+                    if not self.ap.has_arp_cap() and self.cap_path:
+                        self.ap.save_arp_cap(self.cap_path)
+
+                m = self.cre_cap_filename.match(line)
+                if m:
+                    # capture filename announce detected
+                    self.cap_path = os.path.join(self.tmp_dir.name, m.group('cap_filename'))
+
 
         # check stderr
         # TODO (xvondr20) Does 'aireplay-ng --arpreplay' ever print anything to stderr?
@@ -365,6 +376,7 @@ class ArpReplay(object):
         # remove tmp
         self.tmp_dir.cleanup()
         self.tmp_dir = None
+        self.cap_path = None  # file was deleted with tmp_dir
 
         # remove state
         self.state = None

@@ -8,6 +8,7 @@ Martin Vondracek
 2016
 """
 import os
+import shutil
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -28,6 +29,7 @@ class WirelessStation(object):
 
 
 class WirelessAccessPoint(object):
+    # TODO (xvondr20) Refactor not to read related files from directory. Use separate method to update from directory.
     def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
         s = 'WirelessAccessPoint(' + ', '.join([
             self.essid,
@@ -60,6 +62,8 @@ class WirelessAccessPoint(object):
         self.iv_sum = iv_sum
 
         self.associated_stations = list()
+        # default paths
+        self.default_arp_cap_path = os.path.join(self.dir_path, 'ARP.cap')
 
     @property
     def dir_path(self):
@@ -102,6 +106,33 @@ class WirelessAccessPoint(object):
             with open(self.cracked_psk_path, 'r') as f:
                 psk_hex = f.read()
                 return psk_hex
+
+    def save_arp_cap(self, source_arp_cap_path):
+        """
+        Save capture with ARP Requests for successful ARP Replay.
+        Overwrites previous ARP capture, if any exists.
+        :param source_arp_cap_path: path to capture of ARP Requests
+        """
+        if not os.path.isfile(source_arp_cap_path):
+            raise FileNotFoundError
+        shutil.move(source_arp_cap_path, self.default_arp_cap_path)
+
+    def has_arp_cap(self):
+        """
+        Decide whether the network has capture of ARP Requests from successful ARP Replay.
+        :return: bool
+        """
+        return os.path.isfile(self.default_arp_cap_path)
+
+    @property
+    def arp_cap_path(self):
+        """
+        Get path to the capture of ARP Requests if the file is available.
+        If capture file is not available, returns None.
+        :return: str|None
+        """
+        if self.has_arp_cap():
+            return self.default_arp_cap_path
 
     def add_associated_station(self, station):
         station.associated_ap = self
