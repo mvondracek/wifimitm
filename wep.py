@@ -479,5 +479,6 @@ class WepAttacker(object):
 
             capturer.stop()
             arp_replay.stop()
+            arp_replay.clean()
             fake_authentication.stop()
             fake_authentication.clean()
