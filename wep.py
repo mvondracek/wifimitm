@@ -224,8 +224,8 @@ class ArpReplay(object):
 
         # compiled regular expressions
         self.cre_ok = re.compile(
-            r'Read (?P<read>\d+) packets \(got (?P<ARPs>\d*[1-9]\d*) ARP requests and (?P<ACKs>\d*[1-9]\d*) ACKs\),'
-            r' sent (?P<sent>\d*[1-9]\d*) packets...\((?P<pps>\d+) pps\)'
+            r'^Read (?P<read>\d+) packets \(got (?P<ARPs>\d*[1-9]\d*) ARP requests and (?P<ACKs>\d*[1-9]\d*) ACKs\),'
+            r' sent (?P<sent>\d*[1-9]\d*) packets...\((?P<pps>\d+) pps\)$'
         )
         self.cre_cap_filename = re.compile(
             r'^Saving ARP requests in (?P<cap_filename>replay_arp.+\.cap)$'
