@@ -7,10 +7,12 @@ Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
 """
-
+import logging
 import sys
+import tempfile
 
-from wep import *
+from access import WirelessAttacker
+from common import WirelessScanner
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -24,18 +26,17 @@ def main():
         scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=if_mon)
         scan = scanner.scan_once()
 
+        target = None
+        print('Scan:')
         for ap in scan:
+            print(ap)
             if ap.essid == 'test-wep-osa':
+                target = ap
                 logging.info('scan found test-wep-osa')
 
-                dir_network_path = os.path.join(os.getcwd(), 'networks', ap.essid)
-                os.makedirs(dir_network_path, exist_ok=True)
-
-                wep_attacker = WepAttacker(
-                    dir_network_path=dir_network_path,
-                    ap=ap,
-                    if_mon=if_mon)
-                wep_attacker.start()
+        if target:
+            wireless_attacker = WirelessAttacker(ap=target, if_mon=if_mon)
+            wireless_attacker.start()
 
     return 0
 
