@@ -25,7 +25,7 @@ Martin Vondracek
 import re
 from enum import Enum, unique
 
-from model import *
+from common import WirelessCapturer
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
