@@ -7,6 +7,7 @@ Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
 """
+import logging
 import os
 import shutil
 
@@ -29,7 +30,6 @@ class WirelessStation(object):
 
 
 class WirelessAccessPoint(object):
-    # TODO (xvondr20) Refactor not to read related files from directory. Use separate method to update from directory.
     def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
         s = 'WirelessAccessPoint(' + ', '.join([
             self.essid,
@@ -62,8 +62,15 @@ class WirelessAccessPoint(object):
         self.iv_sum = iv_sum
 
         self.associated_stations = list()
+
+        self.arp_cap_path = None
+        """path to the capture of ARP Requests, if available"""
+        self.psk_path = None
+        """path to the file containing hexadecimal PSK, if available"""
+
         # default paths
         self.default_arp_cap_path = os.path.join(self.dir_path, 'ARP.cap')
+        self.default_psk_path = os.path.join(self.dir_path, self.encryption + '_PSK.hex')
 
     @property
     def dir_path(self):
@@ -79,21 +86,12 @@ class WirelessAccessPoint(object):
         """
         os.makedirs(self.dir_path, exist_ok=True)
 
-    @property
-    def cracked_psk_path(self):
-        """
-        Get path to location where cracked PSK should be located after successful crack.
-        Path to PSK is returned even if the file does not exists (have not been successfully cracked yet).
-        :return: str
-        """
-        return os.path.join(self.dir_path, self.encryption + '_PSK.hex')
-
     def is_cracked(self):
         """
         Decide whether the network have been successfully cracked and therefore a PSK is available.
         :return: bool
         """
-        return os.path.isfile(self.cracked_psk_path)
+        return self.psk_path is not None  # TODO(xvondr20) WPS?
 
     @property
     def cracked_psk(self):
@@ -102,8 +100,8 @@ class WirelessAccessPoint(object):
         available, returns None.
         :return: str|None
         """
-        if self.is_cracked():
-            with open(self.cracked_psk_path, 'r') as f:
+        if self.psk_path:
+            with open(self.psk_path, 'r') as f:
                 psk_hex = f.read()
                 return psk_hex
 
@@ -116,24 +114,31 @@ class WirelessAccessPoint(object):
         if not os.path.isfile(source_arp_cap_path):
             raise FileNotFoundError
         shutil.move(source_arp_cap_path, self.default_arp_cap_path)
+        self.arp_cap_path = self.default_arp_cap_path
 
-    def has_arp_cap(self):
+    def save_psk_file(self, source_psk_file_path):
         """
-        Decide whether the network has capture of ARP Requests from successful ARP Replay.
-        :return: bool
+        Save PSK file containing hexadecimal cracked key for network.
+        Overwrites previous PSK file, if any exists.
+        :param source_psk_file_path: path to PSK file
         """
-        return os.path.isfile(self.default_arp_cap_path)
-
-    @property
-    def arp_cap_path(self):
-        """
-        Get path to the capture of ARP Requests if the file is available.
-        If capture file is not available, returns None.
-        :return: str|None
-        """
-        if self.has_arp_cap():
-            return self.default_arp_cap_path
+        if not os.path.isfile(source_psk_file_path):
+            raise FileNotFoundError
+        shutil.move(source_psk_file_path, self.default_psk_path)
+        self.psk_path = self.default_psk_path
 
     def add_associated_station(self, station):
         station.associated_ap = self
         self.associated_stations.append(station)
+
+    def update_known(self):
+        """
+        Update known network based on saved files.
+        """
+        if not self.arp_cap_path and os.path.isfile(self.default_arp_cap_path):
+            self.arp_cap_path = self.default_arp_cap_path
+            logging.debug(self.essid + ' arp_cap known')
+
+        if not self.psk_path and os.path.isfile(self.default_psk_path):
+            self.psk_path = self.default_psk_path
+            logging.debug(self.essid + ' psk known')

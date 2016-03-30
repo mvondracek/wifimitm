@@ -58,7 +58,11 @@ def csv_row_to_ap(row):
     #
     essid = row[13].strip()
     iv_sum = row[10].strip()
-    return WirelessAccessPoint(bssid, power, channel, encryption, cipher, authentication, wps, essid, iv_sum)
+
+    ap = WirelessAccessPoint(bssid, power, channel, encryption, cipher, authentication, wps, essid, iv_sum)
+    ap.update_known()
+
+    return ap
 
 
 def csv_to_result(csv_path):
