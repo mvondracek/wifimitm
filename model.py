@@ -76,6 +76,7 @@ class WirelessAccessPoint(object):
     def dir_path(self):
         """
         Get path to directory which should be dedicated for files related to this network.
+        It the directory does not exist, the attacker is responsible for its creation using `self.make_dir()`.
         :return: str
         """
         return os.path.join(os.getcwd(), 'networks', self.essid)  # TODO (xvondr20) what is essid is not available?
