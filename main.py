@@ -30,9 +30,9 @@ def main():
         print('Scan:')
         for ap in scan:
             print(ap)
-            if ap.essid == 'test-wep-osa':
+            if ap.essid == 'test-wep-osa' or ap.essid == 'test-wep-ska':
                 target = ap
-                logging.info('scan found test-wep-osa')
+                logging.info('scan found ' + target.essid)
 
         if target:
             wireless_attacker = WirelessAttacker(ap=target, if_mon=if_mon)

