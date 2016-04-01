@@ -1,4 +1,5 @@
-networks/
+/networks/
+/setup/AP config
 
 ### Python
 # Byte-compiled / optimized / DLL files
