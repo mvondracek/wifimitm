@@ -345,7 +345,6 @@ class ArpReplay(object):
                     # capture filename announce detected
                     self.cap_path = os.path.join(self.tmp_dir.name, m.group('cap_filename'))
 
-
         # check stderr
         # TODO (xvondr20) Does 'aireplay-ng --arpreplay' ever print anything to stderr?
         assert self.process_stderr_r.read() == ''
@@ -578,7 +577,6 @@ class WepCracker(object):
         # remove tmp
         self.tmp_dir.cleanup()
         self.tmp_dir = None
-        self.psk_path = None  # file was deleted with tmp_dir
 
         # remove state
         self.state = None
