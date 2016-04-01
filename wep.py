@@ -498,6 +498,8 @@ class WepCracker(object):
         self.process = subprocess.Popen(cmd, cwd=self.tmp_dir.name,
                                         stdout=self.process_stdout_w, stderr=self.process_stderr_w,
                                         universal_newlines=True)
+        # NOTE: Aircrack-ng does not flush when stdout is redirected to file and -q is set.
+        self.state = self.__class__.State.ok
         logging.debug('WepCracker started; cwd=' + self.tmp_dir.name + ', ' +
                       'stdout @ ' + self.process_stdout_w.name +
                       ', stderr @ ' + self.process_stderr_w.name)
