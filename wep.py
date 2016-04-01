@@ -172,6 +172,7 @@ class FakeAuthentication(object):
                 logging.debug('FakeAuthentication killed')
 
             self.process = None
+            self.state = self.__class__.State.terminated
             return exitcode
 
     def clean(self):
@@ -370,6 +371,7 @@ class ArpReplay(object):
                 logging.debug('ArpReplay killed')
 
             self.process = None
+            self.state = self.__class__.State.terminated
             return exitcode
 
     def clean(self):
@@ -514,6 +516,7 @@ class WepCracker(object):
                 logging.debug('WepCracker killed')
 
             self.process = None
+            self.state = self.__class__.State.terminated
             return exitcode
 
     def clean(self):
