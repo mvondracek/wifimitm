@@ -9,6 +9,11 @@ Martin Vondracek
 
 #Implementation notes
 - Airodump-ng writes its Text User Interface to stderr, stdout is empty.
+- Airodump-ng has difficulties saving PRGA XOR based on some station vendors
+  `"that's not really specific to WRT54G. It happens with some clients, like apple."
+    <http://trac.aircrack-ng.org/ticket/372#comment:5>`_
+  http://trac.aircrack-ng.org/ticket/915
+  http://trac.aircrack-ng.org/ticket/372
 - Aireplay-ng writes to stdout.
 - Aircrack-ng does not flush when stdout is redirected to file and -q is set.
 - Feedback from running subprocesses is obtained from their stdout and stderr. Method Popen.communicate() is
@@ -46,6 +51,9 @@ class FakeAuthentication(object):
     Fake authentication cannot be used to authenticate/associate with WPA/WPA2 Access Points.
 
     `fake_authentication[Aircrack-ng] <http://www.aircrack-ng.org/doku.php?id=fake_authentication>`_
+
+    Process at first tries Open System Authentication. If OSA is not supported and Shared Key Authentication is
+    required, 'ska_required' flag is set. Fake Shared Key Authentication requires a keystream file to be provided.
     """
 
     @unique
@@ -81,11 +89,16 @@ class FakeAuthentication(object):
         """
         self.flags['deauthenticated'] = False
         """Flag 'deauthenticated' is set if at least one deauthentication packet was received."""
+        self.flags['needs_prga_xor'] = False
+        """Flag 'needs_prga_xor' is set if PRGA XOR file is needed for shared key authentication."""
 
-    def start(self, reassoc_delay=30, keep_alive_delay=5):
+    def start(self, reassoc_delay=30, keep_alive_delay=5, tries=5):
         """
+        Start FakeAuthentication.
+        Uses previously saved PRGA XOR, if available.
         :param reassoc_delay: reassociation timing in seconds
         :param keep_alive_delay: time between keep-alive packets
+        :param tries: Exit if fake authentication fails 'n' time(s)
         """
         self.state = FakeAuthentication.State.new
         self.__init_flags()
@@ -93,9 +106,13 @@ class FakeAuthentication(object):
         cmd = ['aireplay-ng',
                '--fakeauth', str(reassoc_delay),
                '-q', str(keep_alive_delay),
+               '-T', str(tries),
                '-a', self.ap.bssid,
-               '-h', self.attacker_mac,
-               self.interface]
+               '-h', self.attacker_mac]
+        if self.ap.prga_xor_path:  # TODO(xvondr20) What if PRGA XOR is avaible, but network does allow only OSA now?
+            cmd.append('-y')
+            cmd.append(self.ap.prga_xor_path)
+        cmd.append(self.interface)
         # temp files (write, read) for stdout and stderr
         self.process_stdout_w = tempfile.NamedTemporaryFile(prefix='fakeauth-stdout', dir=self.tmp_dir)
         self.process_stdout_r = open(self.process_stdout_w.name, 'r')
@@ -126,6 +143,9 @@ class FakeAuthentication(object):
                 # set flag to notify that at least one deauthentication packet was received since last update
                 self.flags['deauthenticated'] = True
                 logging.debug('FakeAuthentication received a deauthentication packet!')
+            elif 'Switching to shared key authentication' in line and not self.ap.prga_xor_path:
+                self.flags['needs_prga_xor'] = True
+                logging.debug('FakeAuthentication needs PRGA XOR.')
 
         # check stderr
         # TODO (xvondr20) Does 'aireplay-ng --fakeauth' ever print anything to stderr?
