@@ -21,7 +21,7 @@ __email__ = 'xvondr20@stud.fit.vutbr.cz'
 def main():
     logging.basicConfig(format='[%(asctime)s] %(funcName)s: %(message)s', level=logging.DEBUG)
 
-    with tempfile.TemporaryDirectory(prefix='test-wep-osa-') as tmp_dirname:
+    with tempfile.TemporaryDirectory() as tmp_dirname:
         if_mon = 'wlp0s20u1u1mon'
         scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=if_mon)
         scan = scanner.scan_once()
