@@ -154,10 +154,11 @@ class WirelessCapturer(object):
         self.tmp_dir = tmp_dir
         self.interface = interface
 
-        self.capturing_process = None
+        self.process = None
         self.capturing_dir = None
         self.capturing_csv_path = None
         self.capturing_cap_path = None
+        self.capturing_xor_path = None
 
     def start(self, ap):
         self.capturing_dir = tempfile.TemporaryDirectory(prefix='WirelessCapturer-', dir=self.tmp_dir)
@@ -169,22 +170,31 @@ class WirelessCapturer(object):
                '--write-interval', '5',
                '-a',
                self.interface]
-        self.capturing_process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.capturing_csv_path = os.path.join(self.capturing_dir.name, 'capture-01.csv')
         self.capturing_cap_path = os.path.join(self.capturing_dir.name, 'capture-01.cap')
+        self.capturing_xor_path = os.path.join(self.capturing_dir.name, 'capture-01-' + ap.bssid.replace(':','-') + '.xor')
         logging.debug('capture started')
 
     def stop(self):
-        if self.capturing_process:
-            self.capturing_process.terminate()
-            time.sleep(1)
-            self.capturing_process.kill()
-            self.capturing_process = None
+        if self.process:
+            exitcode = self.process.poll()
+            if exitcode is None:
+                self.process.terminate()
+                time.sleep(1)
+                self.process.kill()
+                exitcode = self.process.poll()
+                logging.debug('capture stopped')
+
+            self.process = None
+
             self.capturing_dir.cleanup()
             self.capturing_dir = None
             self.capturing_csv_path = None
             self.capturing_cap_path = None
-        logging.debug('capture stopped')
+            self.capturing_xor_path = None
+
+            return exitcode
 
     def get_capture_result(self):
         while not self.has_capture_csv():
@@ -194,6 +204,10 @@ class WirelessCapturer(object):
 
     def has_capture_csv(self):
         return os.path.isfile(self.capturing_csv_path)
+
+    def has_prga_xor(self):
+        return os.path.isfile(self.capturing_xor_path)
+
 
     def get_iv_sum(self):
         # TODO (xvondr20) Get '#IV' without parsing whole result of objects.
