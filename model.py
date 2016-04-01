@@ -67,10 +67,13 @@ class WirelessAccessPoint(object):
         """path to the capture of ARP Requests, if available"""
         self.psk_path = None
         """path to the file containing hexadecimal PSK, if available"""
+        self.prga_xor_path = None
+        """path to the file containing PRGA XOR keystream, if available"""
 
         # default paths
         self.default_arp_cap_path = os.path.join(self.dir_path, 'ARP.cap')
         self.default_psk_path = os.path.join(self.dir_path, self.encryption + '_PSK.hex')
+        self.default_prga_xor_path = os.path.join(self.dir_path, 'PRGA.xor')
 
     @property
     def dir_path(self):
@@ -128,6 +131,12 @@ class WirelessAccessPoint(object):
         shutil.move(source_psk_file_path, self.default_psk_path)
         self.psk_path = self.default_psk_path
 
+    def save_prga_xor(self, source_prga_xor_path):
+        if not os.path.isfile(source_prga_xor_path):
+            raise FileNotFoundError
+        shutil.move(source_prga_xor_path, self.default_prga_xor_path)
+        self.prga_xor_path = self.default_prga_xor_path
+
     def add_associated_station(self, station):
         station.associated_ap = self
         self.associated_stations.append(station)
@@ -143,3 +152,7 @@ class WirelessAccessPoint(object):
         if not self.psk_path and os.path.isfile(self.default_psk_path):
             self.psk_path = self.default_psk_path
             logging.debug(self.essid + ' psk known')
+
+        if not self.prga_xor_path and os.path.isfile(self.default_prga_xor_path):
+            self.prga_xor_path = self.default_prga_xor_path
+            logging.debug(self.essid + ' prga_xor known')
