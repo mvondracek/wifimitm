@@ -590,6 +590,8 @@ class WepAttacker(object):
                         for st in tmp_ap.associated_stations:
                             deauthenticate(self.if_mon, st)
                             time.sleep(2)
+                            if capturer.has_prga_xor():
+                                break
                     logging.debug('PRGA XOR detected')
                     self.ap.save_prga_xor(capturer.capturing_xor_path)
                     # stop fakeauth without prga_xor
