@@ -131,6 +131,11 @@ class WirelessAccessPoint(object):
         self.psk_path = self.default_psk_path
 
     def save_prga_xor(self, source_prga_xor_path):
+        """
+        Save file containing PRGA XOR keystream.
+        Overwrites previous file, if any exists.
+        :param source_prga_xor_path: path to file containing PRGA XOR keystream
+        """
         if not os.path.isfile(source_prga_xor_path):
             raise FileNotFoundError
         shutil.move(source_prga_xor_path, self.default_prga_xor_path)
