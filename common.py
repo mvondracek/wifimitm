@@ -13,6 +13,7 @@ import os
 import subprocess
 import tempfile
 import time
+from enum import Enum, unique
 
 from model import WirelessAccessPoint, WirelessStation
 
@@ -150,33 +151,107 @@ class WirelessScanner(object):
 
 
 class WirelessCapturer(object):
+    @unique
+    class State(Enum):
+        """
+        WirelessCapturer process states.
+        """
+        ok = 0  # capturing
+        new = 1  # just started
+        terminated = 100
+
     def __init__(self, tmp_dir, interface):
-        self.tmp_dir = tmp_dir
         self.interface = interface
 
         self.process = None
+        self.state = None
+        self.flags = {}
+        self.tmp_dir = tmp_dir
+
+        # process' stdout, stderr for its writing
+        self.process_stdout_w = None
+        self.process_stderr_w = None
+        # process' stdout, stderr for reading
+        self.process_stdout_r = None
+        self.process_stderr_r = None
+
         self.capturing_dir = None
         self.capturing_csv_path = None
         self.capturing_cap_path = None
         self.capturing_xor_path = None
 
+        self.wpa_handshake_cap_path = None
+
+    def __init_flags(self):
+        """
+        Init flags describing state of the running process.
+        Should be called only during start of the process. Flags are set during update_state().
+        """
+        self.flags['detected_wpa_handshake'] = False
+        """Flag 'detected_wpa_handshake' is set if process detected WPA handshake, which is now saved in cap file."""
+
     def start(self, ap):
+        self.state = self.__class__.State.new
+        self.__init_flags()
         self.capturing_dir = tempfile.TemporaryDirectory(prefix='WirelessCapturer-', dir=self.tmp_dir)
+
+        # temp files (write, read) for stdout and stderr
+        self.process_stdout_w = tempfile.NamedTemporaryFile(prefix='WirelessCapturer-stdout',
+                                                            dir=self.capturing_dir.name)
+        self.process_stdout_r = open(self.process_stdout_w.name, 'r')
+
+        self.process_stderr_w = tempfile.NamedTemporaryFile(prefix='WirelessCapturer-stderr',
+                                                            dir=self.capturing_dir.name)
+        self.process_stderr_r = open(self.process_stderr_w.name, 'r')
+
         cmd = ['airodump-ng',
                '--bssid', ap.bssid,
                '--channel', ap.channel,
-               '-w', os.path.join(self.capturing_dir.name, 'capture'),
+               '-w', 'capture',
                '--output-format', 'csv,pcap',
                '--write-interval', '5',
+               '--update', '5',  # delay between display updates
                '-a',
                self.interface]
-        self.process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.process = subprocess.Popen(cmd, cwd=self.capturing_dir.name,
+                                        stdout=self.process_stdout_w, stderr=self.process_stderr_w,
+                                        universal_newlines=True)
         self.capturing_csv_path = os.path.join(self.capturing_dir.name, 'capture-01.csv')
         self.capturing_cap_path = os.path.join(self.capturing_dir.name, 'capture-01.cap')
-        self.capturing_xor_path = os.path.join(self.capturing_dir.name, 'capture-01-' + ap.bssid.replace(':','-') + '.xor')
-        logging.debug('capture started')
+        self.capturing_xor_path = os.path.join(self.capturing_dir.name,
+                                               'capture-01-' + ap.bssid.replace(':', '-') + '.xor')
+        logging.debug('WirelessCapturer started; cwd=' + self.capturing_dir.name + ', ' +
+                      'stdout @ ' + self.process_stdout_w.name +
+                      ', stderr @ ' + self.process_stderr_w.name)
+
+    def update_state(self):
+        """
+        Update state of running process from process' feedback.
+        Read new output from stdout and stderr, check if process is alive. Set appropriate flags.
+        """
+        # check every added line in stdout
+        # TODO (xvondr20) Does 'airodump-ng' ever print anything to stdout?
+        assert self.process_stdout_r.read() == ''
+
+        # check every added line in stderr
+        for line in self.process_stderr_r:
+            if 'WPA handshake:' in line and not self.flags['detected_wpa_handshake']:
+                # only on the first print of 'WPA handshake:'
+                self.flags['detected_wpa_handshake'] = True
+                logging.debug('WirelessCapturer detected_wpa_handshake')
+                self.__extract_wpa_handshake()
+
+        # is process running?
+        if self.process.poll() is not None:
+            self.state = self.__class__.State.terminated
 
     def stop(self):
+        """
+        Stop running process.
+        If the process is stopped or already finished, exitcode is returned.
+        In the case that there was not any process, nothing happens.
+        :return:
+        """
         if self.process:
             exitcode = self.process.poll()
             if exitcode is None:
@@ -184,17 +259,45 @@ class WirelessCapturer(object):
                 time.sleep(1)
                 self.process.kill()
                 exitcode = self.process.poll()
-                logging.debug('capture stopped')
+                logging.debug('WirelessCapturer stopped')
 
             self.process = None
-
-            self.capturing_dir.cleanup()
-            self.capturing_dir = None
-            self.capturing_csv_path = None
-            self.capturing_cap_path = None
-            self.capturing_xor_path = None
-
+            self.state = self.__class__.State.terminated
             return exitcode
+
+    def clean(self):
+        """
+        Clean after running process.
+        Running process is stopped, temp files are closed and deleted,
+        :return:
+        """
+        logging.debug('WirelessCapturer clean')
+        # if the process is running, stop it and then clean
+        if self.process:
+            self.stop()
+        # close opened files
+        self.process_stdout_r.close()
+        self.process_stdout_r = None
+
+        self.process_stdout_w.close()
+        self.process_stdout_w = None
+
+        self.process_stderr_r.close()
+        self.process_stderr_r = None
+
+        self.process_stderr_w.close()
+        self.process_stderr_w = None
+
+        # remove tmp
+        self.capturing_dir.cleanup()
+        self.capturing_dir = None
+        self.capturing_csv_path = None
+        self.capturing_cap_path = None
+        self.capturing_xor_path = None
+
+        # remove state
+        self.state = None
+        self.flags.clear()
 
     def get_capture_result(self):
         while not self.has_capture_csv():
@@ -208,7 +311,6 @@ class WirelessCapturer(object):
     def has_prga_xor(self):
         return os.path.isfile(self.capturing_xor_path)
 
-
     def get_iv_sum(self):
         # TODO (xvondr20) Get '#IV' without parsing whole result of objects.
         aps = self.get_capture_result()
@@ -216,6 +318,15 @@ class WirelessCapturer(object):
             return aps[0].iv_sum
         else:
             return 0
+
+    def __extract_wpa_handshake(self):
+        if not os.path.isfile(self.capturing_cap_path):
+            raise FileNotFoundError
+        hs_path = os.path.join(self.capturing_dir.name, 'WPA_handshake.cap')
+        cmd = ['wpaclean', hs_path, self.capturing_cap_path]
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # TODO(xvondr20) Check process' feedback.
+        self.wpa_handshake_cap_path = hs_path
 
 
 def deauthenticate(interface, station, count=10):
