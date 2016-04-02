@@ -18,7 +18,7 @@ start
 :Scan networks;
 :Update known;
 note: already attacked networks
-#Grey:Choose AP for attack/
+:Choose AP for attack/
 
 if (OPEN) then (yes)
     if (Eavesdrop disconnected?) then (yes)
@@ -41,7 +41,7 @@ elseif (WEP) then (yes)
 elseif (WPA or WPA2) then (yes)
 
     if (Crack?) then (yes)
-        #Grey:Crack;
+        :WPA2 attack|
         #Grey:Connect;
         #Grey:Default gateway spoofing;
     elseif (Impersonate?) then (yes)

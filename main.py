@@ -30,7 +30,7 @@ def main():
         print('Scan:')
         for ap in scan:
             print(ap)
-            if ap.essid == 'test-wep-osa' or ap.essid == 'test-wep-ska':
+            if ap.essid == 'test-wep-osa' or ap.essid == 'test-wep-ska' or ap.essid == 'test-wpa-psk':
                 target = ap
                 logging.info('scan found ' + target.essid)
 

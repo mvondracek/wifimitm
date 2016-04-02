@@ -37,7 +37,10 @@ class WirelessAccessPoint(object):
         ])
 
         if self.is_cracked():
-            s += ', PSK(0x' + self.cracked_psk + ', "' + bytes.fromhex(self.cracked_psk).decode('ascii') + '"), '
+            if 'WEP' in self.encryption:
+                s += ', PSK(0x' + self.cracked_psk + ', "' + bytes.fromhex(self.cracked_psk).decode('ascii') + '"), '
+            else:
+                s += ', PSK("' + self.cracked_psk + '"), '
 
         s += ', '.join([
             self.power,
@@ -69,11 +72,17 @@ class WirelessAccessPoint(object):
         """path to the file containing hexadecimal PSK, if available"""
         self.prga_xor_path = None
         """path to the file containing PRGA XOR keystream, if available"""
+        self.wpa_handshake_cap_path = None
+        """path to the capture of WPA handshake, if available"""
 
         # default paths
         self.default_arp_cap_path = os.path.join(self.dir_path, 'ARP.cap')
-        self.default_psk_path = os.path.join(self.dir_path, self.encryption + '_PSK.hex')
+        if 'WEP' in self.encryption:
+            self.default_psk_path = os.path.join(self.dir_path, self.encryption + '_PSK.hex')
+        else:
+            self.default_psk_path = os.path.join(self.dir_path, self.encryption + '_PSK.txt')
         self.default_prga_xor_path = os.path.join(self.dir_path, 'PRGA.xor')
+        self.default_wpa_handshake_cap_path = os.path.join(self.dir_path, 'WPA_handshake.cap')
 
     @property
     def dir_path(self):
@@ -100,8 +109,9 @@ class WirelessAccessPoint(object):
     @property
     def cracked_psk(self):
         """
-        Get hexadecimal cracked PSK if available. If the network have not been cracked yet, therefore PSK is not
-        available, returns None.
+        Get cracked PSK if available.
+        If encryption is WEP, PSK is hexadecimal sequence. If encryption is WPA or WPA2, PSK is ASCII sequence.
+        If the network have not been cracked yet, therefore PSK is not available, returns None.
         :return: str|None
         """
         if self.psk_path:
@@ -129,6 +139,17 @@ class WirelessAccessPoint(object):
             raise FileNotFoundError
         shutil.move(source_psk_file_path, self.default_psk_path)
         self.psk_path = self.default_psk_path
+
+    def save_wpa_handshake_cap(self, source_wpa_handshake_cap_path):
+        """
+        Save capture with WPA handshake.
+        Overwrites previous file, if any exists.
+        :param source_wpa_handshake_cap_path: path to capture with WPA handshake
+        """
+        if not os.path.isfile(source_wpa_handshake_cap_path):
+            raise FileNotFoundError
+        shutil.move(source_wpa_handshake_cap_path, self.default_wpa_handshake_cap_path)
+        self.wpa_handshake_cap_path = self.default_wpa_handshake_cap_path
 
     def save_prga_xor(self, source_prga_xor_path):
         """
@@ -160,3 +181,7 @@ class WirelessAccessPoint(object):
         if not self.prga_xor_path and os.path.isfile(self.default_prga_xor_path):
             self.prga_xor_path = self.default_prga_xor_path
             logging.debug(self.essid + ' prga_xor known')
+
+        if not self.wpa_handshake_cap_path and os.path.isfile(self.default_wpa_handshake_cap_path):
+            self.wpa_handshake_cap_path = self.default_wpa_handshake_cap_path
+            logging.debug(self.essid + ' wpa_handshake_cap known')

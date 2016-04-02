@@ -10,6 +10,7 @@ Martin Vondracek
 import logging
 
 from wep import WepAttacker
+from wpa2 import Wpa2Attacker
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -45,6 +46,9 @@ class WirelessAttacker(object):
             return
         if 'WEP' in self.ap.encryption:
             wep_attacker = WepAttacker(ap=self.ap, if_mon=self.if_mon)
-            wep_attacker.start(force=force)
+            wep_attacker.start()
+        if 'WPA' in self.ap.encryption:  # 'WPA', 'WPA2 WPA', 'WPA'
+            wpa2_attacker = Wpa2Attacker(ap=self.ap, if_mon=self.if_mon)
+            wpa2_attacker.start()
         else:
             raise NotImplementedError  # TODO WPA, WPA2
