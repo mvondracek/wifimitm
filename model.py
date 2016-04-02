@@ -106,13 +106,12 @@ class WirelessAccessPoint(object):
         """
         if self.psk_path:
             with open(self.psk_path, 'r') as f:
-                psk_hex = f.read()
-                return psk_hex
+                return f.read()
 
     def save_arp_cap(self, source_arp_cap_path):
         """
         Save capture with ARP Requests for successful ARP Replay.
-        Overwrites previous ARP capture, if any exists.
+        Overwrites previous file, if any exists.
         :param source_arp_cap_path: path to capture of ARP Requests
         """
         if not os.path.isfile(source_arp_cap_path):
@@ -123,7 +122,7 @@ class WirelessAccessPoint(object):
     def save_psk_file(self, source_psk_file_path):
         """
         Save PSK file containing hexadecimal cracked key for network.
-        Overwrites previous PSK file, if any exists.
+        Overwrites previous file, if any exists.
         :param source_psk_file_path: path to PSK file
         """
         if not os.path.isfile(source_psk_file_path):
