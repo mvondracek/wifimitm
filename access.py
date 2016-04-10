@@ -16,9 +16,9 @@ __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
 
-class WirelessAttacker(object):
+class WirelessUnlocker(object):
     """
-    Main class providing attack on wireless network.
+    Main class providing attack on wireless network for unlocking it.
     """
 
     # TODO (xvondr20) Provide some form of feedback during the attack?
@@ -44,11 +44,16 @@ class WirelessAttacker(object):
             #  AP already cracked
             logging.info('Known ' + str(self.ap))
             return
-        if 'WEP' in self.ap.encryption:
+
+        if 'OPN' in self.ap.encryption:
+            logging.info('Open ' + str(self.ap))
+        elif 'WEP' in self.ap.encryption:
             wep_attacker = WepAttacker(ap=self.ap, if_mon=self.if_mon)
             wep_attacker.start()
-        if 'WPA' in self.ap.encryption:  # 'WPA', 'WPA2 WPA', 'WPA'
+            logging.info('Unlocked ' + str(self.ap))
+        elif 'WPA' in self.ap.encryption:  # 'WPA', 'WPA2 WPA', 'WPA'
             wpa2_attacker = Wpa2Attacker(ap=self.ap, if_mon=self.if_mon)
             wpa2_attacker.start()
+            logging.info('Unlocked ' + str(self.ap))
         else:
-            raise NotImplementedError  # TODO WPA, WPA2
+            raise NotImplementedError  # NOTE: Any other security than OPN, WEP, WPA, WPA2?

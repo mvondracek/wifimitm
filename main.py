@@ -11,7 +11,7 @@ import logging
 import sys
 import tempfile
 
-from access import WirelessAttacker
+from access import WirelessUnlocker
 from common import WirelessScanner
 
 __author__ = 'Martin Vondracek'
@@ -35,8 +35,8 @@ def main():
                 logging.info('scan found ' + target.essid)
 
         if target:
-            wireless_attacker = WirelessAttacker(ap=target, if_mon=if_mon)
-            wireless_attacker.start()
+            wireless_unlocker = WirelessUnlocker(ap=target, if_mon=if_mon)
+            wireless_unlocker.start()
 
     return 0
 
