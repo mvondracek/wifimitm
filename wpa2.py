@@ -86,6 +86,14 @@ class Wpa2Cracker(object):
         self.process_stderr_r = None
 
         self.dictionary = open(os.path.join(os.getcwd(), 'basic_dictionary.lst'), 'r')
+        self.personalize_dictionary()
+
+    def personalize_dictionary(self):
+        """
+        Personalize dictionary by available AP details.
+        """
+        pass
+        # TODO(xvondr20) Implement personalize_dictionary
 
     def start(self):
         self.state = self.__class__.State.new
