@@ -11,7 +11,7 @@ import logging
 import sys
 import tempfile
 
-from access import WirelessUnlocker
+from access import WirelessUnlocker, WirelessConnecter
 from common import WirelessScanner
 
 __author__ = 'Martin Vondracek'
@@ -37,6 +37,11 @@ def main():
         if target:
             wireless_unlocker = WirelessUnlocker(ap=target, if_mon=if_mon)
             wireless_unlocker.start()
+
+            wireless_connecter = WirelessConnecter(interface=if_mon)
+            wireless_connecter.connect(target)
+
+            wireless_connecter.disconnect()
 
     return 0
 
