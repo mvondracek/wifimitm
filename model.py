@@ -8,8 +8,11 @@ Martin Vondracek
 2016
 """
 import logging
+import netifaces
 import os
+import re
 import shutil
+import subprocess
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -185,3 +188,129 @@ class WirelessAccessPoint(object):
         if not self.wpa_handshake_cap_path and os.path.isfile(self.default_wpa_handshake_cap_path):
             self.wpa_handshake_cap_path = self.default_wpa_handshake_cap_path
             logging.debug(self.essid + ' wpa_handshake_cap known')
+
+
+class WirelessInterface(object):
+    def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
+        s = 'WirelessInterface(' + ', '.join([
+            self.name,
+            self.mac_address,
+            self.channel,
+            self.driver,
+            self.chipset
+        ])
+        if self.monitor_mode:
+            s += ', monitor'
+        s += ')'
+        return s
+
+    def __init__(self, name, driver=None, chipset=None):
+        """
+        Raises:
+            ValueError if name is not a valid interface name
+        """
+        self.name_original = name
+        self.name_monitor = None
+
+        # get MAC address
+        self.mac_address_original = self.get_mac_by_name(self.name)
+        self.mac_address_spoofed = None
+
+        self.channel = None
+        self.monitor_mode = False
+
+        # additional data
+        self.driver = driver
+        self.chipset = chipset
+
+    @staticmethod
+    def get_mac_by_name(name):
+        """
+        Get MAC address of interface specified by name of the interface.
+        :return: string MAC address
+        """
+        # TODO(xvondr20) Is this safe?
+        ifa = netifaces.ifaddresses(name)
+        mac = ifa[netifaces.AF_LINK][0]['addr']
+        return mac
+
+    @property
+    def mac_address(self):
+        """
+        Get current MAC address.
+        """
+        assert self.mac_address_spoofed or self.mac_address_original, 'No MAC address available.'
+
+        if self.mac_address_spoofed:
+            return self.mac_address_spoofed
+        else:
+            return self.mac_address_original
+
+    @property
+    def name(self):
+        """
+        Get current interface name.
+        """
+        assert self.name_monitor or self.name_original, 'No interface name available.'
+
+        if self.name_monitor:
+            return self.name_monitor
+        else:
+            return self.name_original
+
+    def start_monitor_mode(self, channel=None):
+        """
+        :param channel: monitor interface channel
+        Raises:
+            CalledProcessError if airmon-ng returncode is non-zero
+        """
+        assert not self.monitor_mode, 'Interface already in monitor mode.'
+
+        cre_mon_enabled = re.compile(
+            r'^\s+\(\S+ monitor mode vif enabled for \[\S+\](?P<name>\S+) on \[\S+\](?P<mon>\S+)\)$')
+
+        cmd = ['airmon-ng', 'start', self.name]
+        if channel:
+            cmd.append(str(channel))
+            self.channel = channel
+        process = subprocess.run(cmd,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 universal_newlines=True)
+
+        process.check_returncode()
+        # check stderr
+        # TODO (xvondr20) Does 'airmon-ng' ever print anything to stderr?
+        assert process.stderr == ''
+
+        for line in process.stdout.splitlines():
+            m = cre_mon_enabled.match(line)
+            if m:
+                self.monitor_mode = True
+                self.name_monitor = m.group('mon')
+                break
+
+    def stop_monitor_mode(self):
+        """
+        Raises:
+            CalledProcessError if airmon-ng returncode is non-zero
+        """
+        assert self.monitor_mode, 'Interface not in monitor mode.'
+
+        cre_mon_disabled = re.compile(r'^\s+\(\S+ monitor mode vif disabled for \[\S+\](?P<mon>\S+)\)$')
+
+        cmd = ['airmon-ng', 'stop', self.name]
+        process = subprocess.run(cmd,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 universal_newlines=True)
+
+        process.check_returncode()
+        # check stderr
+        # TODO (xvondr20) Does 'airmon-ng' ever print anything to stderr?
+        assert process.stderr == ''
+
+        for line in process.stdout.splitlines():
+            m = cre_mon_disabled.match(line)
+            if m:
+                self.monitor_mode = False
+                self.name_monitor = None
+                break

@@ -11,7 +11,7 @@ import logging
 import sys
 import tempfile
 
-from access import WirelessUnlocker, WirelessConnecter
+from access import WirelessUnlocker, WirelessConnecter, list_wifi_interfaces
 from common import WirelessScanner
 
 __author__ = 'Martin Vondracek'
@@ -21,10 +21,19 @@ __email__ = 'xvondr20@stud.fit.vutbr.cz'
 def main():
     logging.basicConfig(format='[%(asctime)s] %(funcName)s: %(message)s', level=logging.DEBUG)
 
+    interface = None
+    for i in list_wifi_interfaces():
+        if i.name == 'wlp0s20u1u1':
+            interface = i
+            break
+
     with tempfile.TemporaryDirectory() as tmp_dirname:
-        if_mon = 'wlp0s20u1u1mon'
-        scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=if_mon)
+        interface.start_monitor_mode()
+
+        scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=interface.name)
         scan = scanner.scan_once()
+
+        interface.stop_monitor_mode()
 
         target = None
         print('Scan:')
@@ -35,10 +44,12 @@ def main():
                 logging.info('scan found ' + target.essid)
 
         if target:
-            wireless_unlocker = WirelessUnlocker(ap=target, if_mon=if_mon)
+            interface.start_monitor_mode(target.channel)
+            wireless_unlocker = WirelessUnlocker(ap=target, if_mon=interface.name)
             wireless_unlocker.start()
+            interface.stop_monitor_mode()
 
-            wireless_connecter = WirelessConnecter(interface=if_mon)
+            wireless_connecter = WirelessConnecter(interface=interface.name)
             wireless_connecter.connect(target)
 
             wireless_connecter.disconnect()

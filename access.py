@@ -9,8 +9,10 @@ Martin Vondracek
 """
 import logging
 import os
+import re
 import subprocess
 
+from model import WirelessInterface
 from wep import WepAttacker
 from wpa2 import Wpa2Attacker
 
@@ -164,3 +166,46 @@ class WirelessConnecter(object):
         cmd = ['netctl', 'stop', self.profile]
         process = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         process.check_returncode()
+
+
+def list_wifi_interfaces():
+    """
+    List available wireless interfaces presented by airmon-ng.
+    Invalid interface names, not recognized by netifaces, are skipped and warning is logged.
+    Raises:
+        CalledProcessError if airmon-ng returncode is non-zero
+    :return: list of WirelessInterface objects
+    """
+    cre_header = re.compile(r'^PHY\s+Interface\s+Driver\s+Chipset$')
+    cre_interface = re.compile(r'^(?P<phy>\S+)\s+(?P<name>\S+)\s+(?P<driver>\S+)\s+(?P<chipset>.+)$')
+
+    process = subprocess.run('airmon-ng',
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             universal_newlines=True)
+
+    process.check_returncode()
+    # check stderr
+    # TODO (xvondr20) Does 'airmon-ng' ever print anything to stderr?
+    assert process.stderr == ''
+
+    interfaces = list()
+    header_found = False
+    for line in process.stdout.splitlines():
+        if line == '':
+            continue
+        if not header_found and cre_header.match(line):
+            header_found = True
+            continue
+        m = cre_interface.match(line)
+        if header_found and m:
+            # correct output line detected
+            try:
+                i = WirelessInterface(name=m.group('name'), driver=m.group('driver'), chipset=m.group('chipset'))
+            except ValueError:
+                logging.warning('Invalid interface name ' + m.group('name') + ' presented by airmon-ng.')
+            else:
+                interfaces.append(i)
+        else:
+            assert False, 'Unexpected output of airmon-ng'
+
+    return interfaces
