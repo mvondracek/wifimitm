@@ -224,6 +224,25 @@ class WirelessInterface(object):
         self.chipset = chipset
 
     @staticmethod
+    def get_wireless_interface_obj(interface):
+        """
+        Get WirelessInterface object based on provided argument.
+        If interface is already WirelessInterface object, it is just returned. If interface is a valid interface name,
+        appropriate WirelessInterface object is created and returned.
+        :param interface: WirelessInterface object or string representing valid wireless interface name
+        :return: WirelessInterface object
+        Raises:
+            ValueError if provided interface string is not a valid interface name
+            TypeError if provided interface is not a string nor a WirelessInterface object
+        """
+        if isinstance(interface, WirelessInterface):
+            return interface
+        elif isinstance(interface, str):
+            return WirelessInterface(name=interface)
+        else:
+            raise TypeError
+
+    @staticmethod
     def get_mac_by_name(name):
         """
         Get MAC address of interface specified by name of the interface.
