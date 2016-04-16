@@ -7,3 +7,5 @@ Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
 """
+
+__all__ = ['test_updatableProcess']
