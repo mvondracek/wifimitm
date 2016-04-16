@@ -8,4 +8,4 @@ Martin Vondracek
 2016
 """
 
-__all__ = ['test_updatableProcess']
+__all__ = ['test_updatableProcess', 'test_capture']
