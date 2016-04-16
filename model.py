@@ -277,6 +277,20 @@ class WirelessInterface(object):
         else:
             return self.name_original
 
+    @property
+    def gateway(self):
+        """
+        Get current default gateway.
+        """
+        gateway = None
+        gws = netifaces.gateways()
+        for gw in gws[netifaces.AF_INET]:
+            if gw[1] == self.name:
+                gateway = gw[0]
+                break
+        assert gateway, 'No default gateway available.'
+        return gateway
+
     def start_monitor_mode(self, channel=None):
         """
         :param channel: monitor interface channel
