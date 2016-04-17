@@ -1,8 +1,13 @@
+# Automatization of MitM Attack on WiFi Networks
+# Bachelor's Thesis UIFS FIT VUT
+# Martin Vondracek
+# 2016
+
 dictionaries/*
 !dictionaries/dictionary0.lst
-/networks/
-/setup/AP config
-/libs
+networks/
+setup/AP config
+libs
 
 ### Python
 # Byte-compiled / optimized / DLL files
