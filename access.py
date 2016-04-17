@@ -128,7 +128,8 @@ class WirelessConnecter(object):
         profile = 'mitm-' + self.interface + '-' + self.ap.essid
         profile_path = os.path.join('/etc/netctl', profile)
         if os.path.isfile(profile_path):
-            logging.warning('Existing netctl profile ' + profile + 'overwritten.')
+            logging.warning('Existing netctl profile ' + profile + ' overwritten.')
+            self.__stop_profile(profile)
 
         with open(profile_path, 'w') as f:
             f.write(content)
@@ -154,15 +155,20 @@ class WirelessConnecter(object):
         process = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         process.check_returncode()
 
-    def __stop_profile(self):
+    def __stop_profile(self, force_profile_name=None):
         """
         Stop netctl profile.
         Raises:
             CalledProcessError if netctl returncode is non-zero
         """
-        cmd = ['netctl', 'stop', self.profile]
+        cmd = ['netctl', 'stop']
+        if force_profile_name:
+            cmd.append(force_profile_name)
+        else:
+            cmd.append(self.profile)
         process = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         process.check_returncode()
+        logging.debug('OK ' + ' '.join(cmd))
 
 
 def list_wifi_interfaces():
