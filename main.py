@@ -13,6 +13,8 @@ import tempfile
 import time
 import warnings
 
+import coloredlogs
+
 from access import WirelessUnlocker, WirelessConnecter, list_wifi_interfaces
 from capture import Dumpcap
 from common import WirelessScanner
@@ -21,11 +23,14 @@ from topology import ArpSpoofing
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
+logger = logging.getLogger(__name__)
+coloredlogs.install(level='DEBUG')
+logging.captureWarnings(True)
+warnings.simplefilter('always', ResourceWarning)
+
 
 def main():
-    logging.basicConfig(format='[%(asctime)s] %(funcName)s: %(message)s', level=logging.DEBUG)
-    logging.captureWarnings(True)
-    warnings.simplefilter('always', ResourceWarning)
+    logger.info("started")
 
     interface = None
     for i in list_wifi_interfaces():
@@ -47,7 +52,7 @@ def main():
             print(ap)
             if ap.essid == 'test-wep-osa' or ap.essid == 'test-wep-ska' or ap.essid == 'test-wpa-psk':
                 target = ap
-                logging.info('scan found ' + target.essid)
+                logger.info('scan found ' + target.essid)
 
         if target:
             interface.start_monitor_mode(target.channel)
@@ -60,7 +65,7 @@ def main():
 
             arp_spoofing = ArpSpoofing(interface=interface)
             arp_spoofing.start()
-            logging.info('Running until KeyboardInterrupt.')
+            logger.info('Running until KeyboardInterrupt.')
             try:
                 with Dumpcap(interface=interface) as dumpcap:
                     while True:
@@ -69,7 +74,7 @@ def main():
                         time.sleep(1)
 
             except KeyboardInterrupt:
-                logging.info('KeyboardInterrupt')
+                logger.info('KeyboardInterrupt')
             arp_spoofing.stop()
             arp_spoofing.clean()
             wireless_connecter.disconnect()
