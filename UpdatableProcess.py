@@ -124,7 +124,7 @@ class UpdatableProcess(ABC, subprocess.Popen):
         self.cleaned = True
 
     @staticmethod
-    def _cleanup(files, tmp_dir: Optional[tempfile.TemporaryDirectory]=None):
+    def _cleanup(files, tmp_dir: Optional[tempfile.TemporaryDirectory] = None):
         """
         Close files and cleanup temporary directory.
         :param files: sequence of files to be closed, can contain None
