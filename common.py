@@ -73,8 +73,8 @@ def csv_to_result(csv_path):
     :return: List containing WirelessAccessPoint objects with associated WirelessClient objects.
     """
     scan_result = list()
-    with open(csv_path, newline='') as csvfile:
-        reader = csv.reader(csvfile, delimiter=',')
+    with open(csv_path, newline='') as csv_file:
+        reader = csv.reader(csv_file, delimiter=',')
         for row in reader:
             if len(row) < 2 or row[1] == ' First time seen':  # skip section headers and empty lines
                 continue
@@ -131,7 +131,7 @@ class WirelessScanner(object):
     def scan_once(self):
         """
         Scans once for wireless APs and clients.
-        Scanning is done by airodump-ng for 5 seconds. After scanning, airodump-ng is terminanted.
+        Scanning is done by airodump-ng for 5 seconds. After scanning, airodump-ng is terminated.
         :return: List containing WirelessAccessPoint objects with associated WirelessStation objects.
         """
         self.start(write_interval=5)

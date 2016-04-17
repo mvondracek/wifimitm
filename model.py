@@ -246,6 +246,7 @@ class WirelessInterface(object):
     def get_mac_by_name(name):
         """
         Get MAC address of interface specified by name of the interface.
+        :param name: name of the network interface
         :return: string MAC address
         """
         # TODO(xvondr20) Is this safe?
