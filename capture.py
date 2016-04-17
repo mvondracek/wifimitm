@@ -19,7 +19,7 @@ import re
 from enum import Enum, unique
 from typing import Union, Dict
 
-from UpdatableProcess import UpdatableProcess
+from updatableProcess import UpdatableProcess
 from model import WirelessInterface
 
 __author__ = 'Martin Vondracek'

@@ -10,7 +10,7 @@ Martin Vondracek
 import typing as _typing
 import unittest as _unittest
 
-from UpdatableProcess import UpdatableProcess
+from updatableProcess import UpdatableProcess
 
 
 class TestUpdatableProcess(_unittest.TestCase):

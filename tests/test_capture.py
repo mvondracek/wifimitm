@@ -11,7 +11,7 @@ import time as _time
 import typing as _typing
 import unittest as _unittest
 
-from UpdatableProcess import UpdatableProcess
+from updatableProcess import UpdatableProcess
 from capture import Dumpcap
 from model import WirelessInterface as _WirelessInterface
 
