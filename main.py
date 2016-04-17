@@ -10,9 +10,13 @@ Martin Vondracek
 import logging
 import sys
 import tempfile
+import time
+import warnings
 
 from access import WirelessUnlocker, WirelessConnecter, list_wifi_interfaces
+from capture import Dumpcap
 from common import WirelessScanner
+from topology import ArpSpoofing
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -20,6 +24,8 @@ __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
 def main():
     logging.basicConfig(format='[%(asctime)s] %(funcName)s: %(message)s', level=logging.DEBUG)
+    logging.captureWarnings(True)
+    warnings.simplefilter('always', ResourceWarning)
 
     interface = None
     for i in list_wifi_interfaces():
@@ -52,6 +58,20 @@ def main():
             wireless_connecter = WirelessConnecter(interface=interface.name)
             wireless_connecter.connect(target)
 
+            arp_spoofing = ArpSpoofing(interface=interface)
+            arp_spoofing.start()
+            logging.info('Running until KeyboardInterrupt.')
+            try:
+                with Dumpcap(interface=interface) as dumpcap:
+                    while True:
+                        arp_spoofing.update_state()
+                        dumpcap.update()
+                        time.sleep(1)
+
+            except KeyboardInterrupt:
+                logging.info('KeyboardInterrupt')
+            arp_spoofing.stop()
+            arp_spoofing.clean()
             wireless_connecter.disconnect()
 
     return 0
