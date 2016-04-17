@@ -20,11 +20,7 @@ __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
 
-class ConnectionError(Exception):
-    pass
-
-
-class NotCrackedError(ConnectionError):
+class NotCrackedError(Exception):
     pass
 
 
