@@ -253,6 +253,13 @@ class ArpReplay(object):
             r'^Saving ARP requests in (?P<cap_filename>replay_arp.+\.cap)$'
         )
 
+    def __str__(self):
+        s = '<ArpReplay state: ' + str(self.state) +\
+            ', flags: ' + str(self.flags) +\
+            ', stats: ' + str(self.stats) +\
+            '>'
+        return s
+
     def __init_flags(self):
         """
         Init flags describing state of the running process.
@@ -625,10 +632,7 @@ class WepAttacker(object):
                               'flags: ' + str(fake_authentication.flags)
                               )
 
-                logging.debug('ArpReplay: ' + str(arp_replay.state) + ', ' +
-                              'flags: ' + str(arp_replay.flags) + ', ' +
-                              'stats: ' + str(arp_replay.stats)
-                              )
+                logging.debug(arp_replay)
 
                 logging.debug('WepCracker: ' + str(cracker.state))
 
