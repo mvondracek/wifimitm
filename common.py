@@ -20,6 +20,8 @@ from model import WirelessAccessPoint, WirelessStation
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
+logger = logging.getLogger(__name__)
+
 
 def csv_row_station_bssid(row):
     """
@@ -110,7 +112,7 @@ class WirelessScanner(object):
                self.interface]
         self.process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.scanning_csv_path = os.path.join(self.scanning_dir.name, 'scan-01.csv')
-        logging.debug('scan started')
+        logger.debug('scan started')
 
     def stop(self):
         if self.process:
@@ -120,7 +122,7 @@ class WirelessScanner(object):
                 time.sleep(1)
                 self.process.kill()
                 exitcode = self.process.poll()
-                logging.debug('scan killed')
+                logger.debug('scan killed')
 
             self.process = None
             self.scanning_dir.cleanup()
@@ -142,7 +144,7 @@ class WirelessScanner(object):
 
     def get_scan_result(self):
         while not self.has_csv():
-            logging.debug('WirelessScanner polling result')
+            logger.debug('WirelessScanner polling result')
             time.sleep(1)
         return csv_to_result(self.scanning_csv_path)
 
@@ -220,7 +222,7 @@ class WirelessCapturer(object):
         self.capturing_cap_path = os.path.join(self.capturing_dir.name, 'capture-01.cap')
         self.capturing_xor_path = os.path.join(self.capturing_dir.name,
                                                'capture-01-' + ap.bssid.replace(':', '-') + '.xor')
-        logging.debug('WirelessCapturer started; cwd=' + self.capturing_dir.name + ', ' +
+        logger.debug('WirelessCapturer started; cwd=' + self.capturing_dir.name + ', ' +
                       'stdout @ ' + self.process_stdout_w.name +
                       ', stderr @ ' + self.process_stderr_w.name)
 
@@ -238,7 +240,7 @@ class WirelessCapturer(object):
             if 'WPA handshake:' in line and not self.flags['detected_wpa_handshake']:
                 # only on the first print of 'WPA handshake:'
                 self.flags['detected_wpa_handshake'] = True
-                logging.debug('WirelessCapturer detected_wpa_handshake')
+                logger.debug('WirelessCapturer detected_wpa_handshake')
                 self.__extract_wpa_handshake()
 
         # is process running?
@@ -259,7 +261,7 @@ class WirelessCapturer(object):
                 time.sleep(1)
                 self.process.kill()
                 exitcode = self.process.poll()
-                logging.debug('WirelessCapturer stopped')
+                logger.debug('WirelessCapturer stopped')
 
             self.process = None
             self.state = self.__class__.State.terminated
@@ -271,7 +273,7 @@ class WirelessCapturer(object):
         Running process is stopped, temp files are closed and deleted,
         :return:
         """
-        logging.debug('WirelessCapturer clean')
+        logger.debug('WirelessCapturer clean')
         # if the process is running, stop it and then clean
         if self.process:
             self.stop()
@@ -301,7 +303,7 @@ class WirelessCapturer(object):
 
     def get_capture_result(self):
         while not self.has_capture_csv():
-            logging.debug('WirelessCapturer polling result')
+            logger.debug('WirelessCapturer polling result')
             time.sleep(1)
         return csv_to_result(self.capturing_csv_path)
 
@@ -357,4 +359,4 @@ def deauthenticate(interface, station, count=10):
 
     process = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     # TODO(xvondr20) Check for deauth ACKs from target? ACKs' count is printed to stdout.
-    logging.debug('deauth sent to ' + station.mac_address)
+    logger.debug('deauth sent to ' + station.mac_address)

@@ -19,6 +19,8 @@ from wpa2 import Wpa2Attacker
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
+logger = logging.getLogger(__name__)
+
 
 class NotCrackedError(Exception):
     pass
@@ -50,19 +52,19 @@ class WirelessUnlocker(object):
         """
         if not force and self.ap.is_cracked():
             #  AP already cracked
-            logging.info('Known ' + str(self.ap))
+            logger.info('Known ' + str(self.ap))
             return
 
         if 'OPN' in self.ap.encryption:
-            logging.info('Open ' + str(self.ap))
+            logger.info('Open ' + str(self.ap))
         elif 'WEP' in self.ap.encryption:
             wep_attacker = WepAttacker(ap=self.ap, if_mon=self.if_mon)
             wep_attacker.start()
-            logging.info('Unlocked ' + str(self.ap))
+            logger.info('Unlocked ' + str(self.ap))
         elif 'WPA' in self.ap.encryption:  # 'WPA', 'WPA2 WPA', 'WPA'
             wpa2_attacker = Wpa2Attacker(ap=self.ap, if_mon=self.if_mon)
             wpa2_attacker.start()
-            logging.info('Unlocked ' + str(self.ap))
+            logger.info('Unlocked ' + str(self.ap))
         else:
             raise NotImplementedError  # NOTE: Any other security than OPN, WEP, WPA, WPA2?
 
@@ -91,10 +93,10 @@ class WirelessConnecter(object):
             raise NotCrackedError()
 
         self.ap = ap
-        logging.info('Connecting to ' + self.ap.essid)
+        logger.info('Connecting to ' + self.ap.essid)
         self.__create_profile()
         self.__start_profile()
-        logging.info('Connected to ' + self.ap.essid)
+        logger.info('Connected to ' + self.ap.essid)
 
     def disconnect(self):
         """
@@ -102,7 +104,7 @@ class WirelessConnecter(object):
         """
         self.__stop_profile()
         self.__delete_profile()
-        logging.info('Disconnected from ' + self.ap.essid)
+        logger.info('Disconnected from ' + self.ap.essid)
         self.ap = None
 
     def __create_profile(self):
@@ -128,7 +130,7 @@ class WirelessConnecter(object):
         profile = 'mitm-' + self.interface + '-' + self.ap.essid
         profile_path = os.path.join('/etc/netctl', profile)
         if os.path.isfile(profile_path):
-            logging.warning('Existing netctl profile ' + profile + ' overwritten.')
+            logger.warning('Existing netctl profile ' + profile + ' overwritten.')
             self.__stop_profile(profile)
 
         with open(profile_path, 'w') as f:
@@ -168,7 +170,7 @@ class WirelessConnecter(object):
             cmd.append(self.profile)
         process = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         process.check_returncode()
-        logging.debug('OK ' + ' '.join(cmd))
+        logger.debug('OK ' + ' '.join(cmd))
 
 
 def list_wifi_interfaces():
@@ -205,7 +207,7 @@ def list_wifi_interfaces():
             try:
                 i = WirelessInterface(name=m.group('name'), driver=m.group('driver'), chipset=m.group('chipset'))
             except ValueError:
-                logging.warning('Invalid interface name ' + m.group('name') + ' presented by airmon-ng.')
+                logger.warning('Invalid interface name ' + m.group('name') + ' presented by airmon-ng.')
             else:
                 interfaces.append(i)
         else:

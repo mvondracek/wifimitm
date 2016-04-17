@@ -25,6 +25,8 @@ from model import WirelessInterface
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
+logger = logging.getLogger(__name__)
+
 
 class Dumpcap(UpdatableProcess):
     """
@@ -133,7 +135,7 @@ class Dumpcap(UpdatableProcess):
                     m = self.CRE_CAP_FILE_PATH.match(line)
                     if m:
                         self.cap_file_path = m.group('cap_file_path')
-                        logging.debug("Saving capture to '{}'.".format(self.cap_file_path))
+                        logger.debug("Saving capture to '{}'.".format(self.cap_file_path))
                         self.state = self.State.AWAITING_PACKETS
                         continue
                     assert False, 'Unexpected stderr of dumpcap.' + line + str(self)

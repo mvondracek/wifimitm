@@ -34,6 +34,8 @@ from common import WirelessCapturer, deauthenticate
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
+logger = logging.getLogger(__name__)
+
 
 class Wpa2Error(Exception):
     pass
@@ -119,7 +121,7 @@ class Wpa2Cracker(object):
                                         universal_newlines=True)
         # NOTE: Aircrack-ng does not flush when stdout is redirected to file and -q is set.
         self.state = self.__class__.State.ok
-        logging.debug('Wpa2Cracker started; cwd=' + self.tmp_dir.name + ', ' +
+        logger.debug('Wpa2Cracker started; cwd=' + self.tmp_dir.name + ', ' +
                       'stdout @ ' + self.process_stdout_w.name +
                       ', stderr @ ' + self.process_stderr_w.name)
 
@@ -140,7 +142,7 @@ class Wpa2Cracker(object):
         for line in self.process_stdout_r:
             if 'KEY FOUND!' in line:
                 self.ap.save_psk_file(os.path.join(self.tmp_dir.name, 'psk.ascii'))
-                logging.debug('WepCracker found key!')
+                logger.debug('WepCracker found key!')
             if 'Passphrase not in dictionary' in line:
                 raise PassphraseNotInDictionaryError()
 
@@ -162,7 +164,7 @@ class Wpa2Cracker(object):
                 time.sleep(1)
                 self.process.kill()
                 exitcode = self.process.poll()
-                logging.debug('Wpa2Cracker killed')
+                logger.debug('Wpa2Cracker killed')
 
             self.process = None
             self.state = self.__class__.State.terminated
@@ -174,7 +176,7 @@ class Wpa2Cracker(object):
         Running process is stopped, temp files are closed and deleted,
         :return:
         """
-        logging.debug('Wpa2Cracker clean')
+        logger.debug('Wpa2Cracker clean')
         # if the process is running, stop it and then clean
         if self.process:
             self.stop()
@@ -217,14 +219,14 @@ class Wpa2Attacker(object):
         """
         if not force and self.ap.is_cracked():
             #  AP already cracked
-            logging.info('Known ' + str(self.ap))
+            logger.info('Known ' + str(self.ap))
             return
         with tempfile.TemporaryDirectory() as tmp_dirname:
             if not self.ap.wpa_handshake_cap_path:
                 capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=self.if_mon)
                 capturer.start(self.ap)
 
-                logging.debug('waiting for the capture result')
+                logger.debug('waiting for the capture result')
                 time.sleep(6)  # TODO(xvondr20) Refactor to wait until AP was detected.
                 # TODO(xvondr20) Refactor to improve following strategy ->
                 while not self.ap.wpa_handshake_cap_path:
@@ -234,7 +236,7 @@ class Wpa2Attacker(object):
                         capturer.update_state()
                         tmp_ap = capturer.get_capture_result()[0]
                         if len(tmp_ap.associated_stations) == 0:
-                            logging.debug('network is empty')
+                            logger.debug('network is empty')
                         # deauthenticate stations to acquire WPA handshake
                         for st in tmp_ap.associated_stations:
                             deauthenticate(self.if_mon, st)
@@ -243,7 +245,7 @@ class Wpa2Attacker(object):
                             if capturer.flags['detected_wpa_handshake']:
                                 break
                     self.ap.save_wpa_handshake_cap(capturer.wpa_handshake_cap_path)
-                    logging.debug('WPA handshake detected')
+                    logger.debug('WPA handshake detected')
                 # TODO <-
                 capturer.stop()
                 capturer.clean()
@@ -253,9 +255,9 @@ class Wpa2Attacker(object):
             while not self.ap.is_cracked():
                 cracker.update_state()
 
-                logging.debug('Wpa2Cracker: ' + str(cracker.state))
+                logger.debug('Wpa2Cracker: ' + str(cracker.state))
 
                 time.sleep(5)
-            logging.info('Cracked ' + str(self.ap))
+            logger.info('Cracked ' + str(self.ap))
             cracker.stop()
             cracker.clean()

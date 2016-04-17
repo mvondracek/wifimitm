@@ -41,6 +41,8 @@ from common import WirelessCapturer, deauthenticate
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
+logger = logging.getLogger(__name__)
+
 
 class FakeAuthentication(object):
     """
@@ -124,7 +126,7 @@ class FakeAuthentication(object):
         self.process = subprocess.Popen(cmd,
                                         stdout=self.process_stdout_w, stderr=self.process_stderr_w,
                                         universal_newlines=True)
-        logging.debug('FakeAuthentication started; ' +
+        logger.debug('FakeAuthentication started; ' +
                       'stdout @ ' + self.process_stdout_w.name +
                       ', stderr @ ' + self.process_stderr_w.name)
 
@@ -142,10 +144,10 @@ class FakeAuthentication(object):
             elif 'Got a deauthentication packet!' in line:
                 # set flag to notify that at least one deauthentication packet was received since last update
                 self.flags['deauthenticated'] = True
-                logging.debug('FakeAuthentication received a deauthentication packet!')
+                logger.debug('FakeAuthentication received a deauthentication packet!')
             elif 'Switching to shared key authentication' in line and not self.ap.prga_xor_path:
                 self.flags['needs_prga_xor'] = True
-                logging.debug('FakeAuthentication needs PRGA XOR.')
+                logger.debug('FakeAuthentication needs PRGA XOR.')
 
         # check stderr
         # TODO (xvondr20) Does 'aireplay-ng --fakeauth' ever print anything to stderr?
@@ -169,7 +171,7 @@ class FakeAuthentication(object):
                 time.sleep(1)
                 self.process.kill()
                 exitcode = self.process.poll()
-                logging.debug('FakeAuthentication killed')
+                logger.debug('FakeAuthentication killed')
 
             self.process = None
             self.state = self.__class__.State.terminated
@@ -181,7 +183,7 @@ class FakeAuthentication(object):
         Running process is stopped, temp files are closed and deleted,
         :return:
         """
-        logging.debug('FakeAuthentication clean')
+        logger.debug('FakeAuthentication clean')
         # if the process is running, stop it and then clean
         if self.process:
             self.stop()
@@ -313,7 +315,7 @@ class ArpReplay(object):
         self.process = subprocess.Popen(cmd, cwd=self.tmp_dir.name,
                                         stdout=self.process_stdout_w, stderr=self.process_stderr_w,
                                         universal_newlines=True)
-        logging.debug('ArpReplay started; cwd=' + self.tmp_dir.name + ', ' +
+        logger.debug('ArpReplay started; cwd=' + self.tmp_dir.name + ', ' +
                       'stdout @ ' + self.process_stdout_w.name +
                       ', stderr @ ' + self.process_stderr_w.name)
 
@@ -331,7 +333,7 @@ class ArpReplay(object):
             elif 'Notice: got a deauth/disassoc packet. Is the source MAC associated ?' in line:
                 # set flag to notify that at least one deauthentication packet was received since last update
                 self.flags['deauthenticated'] = True
-                logging.debug('ArpReplay received a deauthentication packet!')
+                logger.debug('ArpReplay received a deauthentication packet!')
             else:
                 m = self.cre_ok.match(line)
                 if m:
@@ -374,7 +376,7 @@ class ArpReplay(object):
                 time.sleep(1)
                 self.process.kill()
                 exitcode = self.process.poll()
-                logging.debug('ArpReplay killed')
+                logger.debug('ArpReplay killed')
 
             self.process = None
             self.state = self.__class__.State.terminated
@@ -386,7 +388,7 @@ class ArpReplay(object):
         Running process is stopped, temp files are closed and deleted,
         :return:
         """
-        logging.debug('ArpReplay clean')
+        logger.debug('ArpReplay clean')
         # if the process is running, stop it and then clean
         if self.process:
             self.stop()
@@ -475,7 +477,7 @@ class WepCracker(object):
                                         universal_newlines=True)
         # NOTE: Aircrack-ng does not flush when stdout is redirected to file and -q is set.
         self.state = self.__class__.State.ok
-        logging.debug('WepCracker started; cwd=' + self.tmp_dir.name + ', ' +
+        logger.debug('WepCracker started; cwd=' + self.tmp_dir.name + ', ' +
                       'stdout @ ' + self.process_stdout_w.name +
                       ', stderr @ ' + self.process_stderr_w.name)
 
@@ -499,7 +501,7 @@ class WepCracker(object):
                 if self.state != self.__class__.State.terminated:
                     self.state = self.__class__.State.ok
                 self.ap.save_psk_file(os.path.join(self.tmp_dir.name, 'psk.hex'))
-                logging.debug('WepCracker found key!')
+                logger.debug('WepCracker found key!')
             elif 'Decrypted correctly:' in line:
                 assert '100%' in line  # TODO(xvondr20) Incorrect decryption?
 
@@ -521,7 +523,7 @@ class WepCracker(object):
                 time.sleep(1)
                 self.process.kill()
                 exitcode = self.process.poll()
-                logging.debug('WepCracker killed')
+                logger.debug('WepCracker killed')
 
             self.process = None
             self.state = self.__class__.State.terminated
@@ -533,7 +535,7 @@ class WepCracker(object):
         Running process is stopped, temp files are closed and deleted,
         :return:
         """
-        logging.debug('WepCracker clean')
+        logger.debug('WepCracker clean')
         # if the process is running, stop it and then clean
         if self.process:
             self.stop()
@@ -576,7 +578,7 @@ class WepAttacker(object):
         """
         if not force and self.ap.is_cracked():
             #  AP already cracked
-            logging.info('Known ' + str(self.ap))
+            logger.info('Known ' + str(self.ap))
             return
         with tempfile.TemporaryDirectory() as tmp_dirname:
             capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=self.if_mon)
@@ -599,7 +601,7 @@ class WepAttacker(object):
                             time.sleep(2)
                             if capturer.has_prga_xor():
                                 break
-                    logging.debug('PRGA XOR detected')
+                    logger.debug('PRGA XOR detected')
                     self.ap.save_prga_xor(capturer.capturing_xor_path)
                     # stop fakeauth without prga_xor
                     fake_authentication.clean()
@@ -608,7 +610,7 @@ class WepAttacker(object):
                 if fake_authentication.flags['deauthenticated']:
                     # wait and restart fakeauth
                     fake_authentication.clean()
-                    logging.debug('fakeauth: 5 s backoff')
+                    logger.debug('fakeauth: 5 s backoff')
                     time.sleep(5)
                     fake_authentication.start()
                     # TODO(xvondr20) What if fake_authentication is terminated without any flag?
@@ -628,17 +630,17 @@ class WepAttacker(object):
                 arp_replay.update_state()
                 cracker.update_state()
 
-                logging.debug('FakeAuthentication: ' + str(fake_authentication.state) + ', ' +
+                logger.debug('FakeAuthentication: ' + str(fake_authentication.state) + ', ' +
                               'flags: ' + str(fake_authentication.flags)
                               )
 
-                logging.debug(arp_replay)
+                logger.debug(arp_replay)
 
-                logging.debug('WepCracker: ' + str(cracker.state))
+                logger.debug('WepCracker: ' + str(cracker.state))
 
-                logging.debug('#IV = ' + str(capturer.get_iv_sum()))
+                logger.debug('#IV = ' + str(capturer.get_iv_sum()))
                 time.sleep(5)
-            logging.info('Cracked ' + str(self.ap))
+            logger.info('Cracked ' + str(self.ap))
 
             cracker.stop()
             cracker.clean()

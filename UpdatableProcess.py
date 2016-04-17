@@ -20,6 +20,8 @@ from typing import Optional
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
+logger = logging.getLogger(__name__)
+
 
 class UpdatableProcess(ABC, subprocess.Popen):
     """
@@ -71,7 +73,7 @@ class UpdatableProcess(ABC, subprocess.Popen):
             files=[self.stdout_w, self.stdout_r, self.stderr_w, self.stderr_r], tmp_dir=self.tmp_dir)
         self._finalizer_initialized = True
 
-        logging.debug('{!s} started; stdout @ {!s}, stderr @ {!s}'.format(
+        logger.debug('{!s} started; stdout @ {!s}, stderr @ {!s}'.format(
             type(self).__name__, self.stdout_w.name, self.stderr_w.name))
 
     @abstractmethod
@@ -95,13 +97,13 @@ class UpdatableProcess(ABC, subprocess.Popen):
             # process is running
             self.terminate()
             try:
-                logging.debug('Waiting for {} process to terminate.'.format(type(self).__name__))
+                logger.debug('Waiting for {} process to terminate.'.format(type(self).__name__))
                 self.wait(timeout=10)
             except subprocess.TimeoutExpired:
                 self.kill()
-                logging.warning('Process {} killed after unsuccessful termination.'.format(type(self).__name__))
+                logger.warning('Process {} killed after unsuccessful termination.'.format(type(self).__name__))
             else:
-                logging.debug('Process {} terminated.'.format(type(self).__name__))
+                logger.debug('Process {} terminated.'.format(type(self).__name__))
 
         self.update()
 

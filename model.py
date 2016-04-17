@@ -17,6 +17,8 @@ import subprocess
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
+logger = logging.getLogger(__name__)
+
 
 class WirelessStation(object):
     def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
@@ -175,19 +177,19 @@ class WirelessAccessPoint(object):
         """
         if not self.arp_cap_path and os.path.isfile(self.default_arp_cap_path):
             self.arp_cap_path = self.default_arp_cap_path
-            logging.debug(self.essid + ' arp_cap known')
+            logger.debug(self.essid + ' arp_cap known')
 
         if not self.psk_path and os.path.isfile(self.default_psk_path):
             self.psk_path = self.default_psk_path
-            logging.debug(self.essid + ' psk known')
+            logger.debug(self.essid + ' psk known')
 
         if not self.prga_xor_path and os.path.isfile(self.default_prga_xor_path):
             self.prga_xor_path = self.default_prga_xor_path
-            logging.debug(self.essid + ' prga_xor known')
+            logger.debug(self.essid + ' prga_xor known')
 
         if not self.wpa_handshake_cap_path and os.path.isfile(self.default_wpa_handshake_cap_path):
             self.wpa_handshake_cap_path = self.default_wpa_handshake_cap_path
-            logging.debug(self.essid + ' wpa_handshake_cap known')
+            logger.debug(self.essid + ' wpa_handshake_cap known')
 
 
 class WirelessInterface(object):

@@ -24,6 +24,8 @@ from model import WirelessInterface
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
+logger = logging.getLogger(__name__)
+
 
 class ArpSpoofing(object):
     """
@@ -78,7 +80,7 @@ class ArpSpoofing(object):
         self.process = subprocess.Popen(cmd,
                                         stdout=self.process_stdout_w, stderr=self.process_stderr_w,
                                         universal_newlines=True)
-        logging.debug('ArpSpoofing started; stdout @ ' + self.process_stdout_w.name +
+        logger.debug('ArpSpoofing started; stdout @ ' + self.process_stdout_w.name +
                       ', stderr @ ' + self.process_stderr_w.name)
 
     def update_state(self):
@@ -118,11 +120,11 @@ class ArpSpoofing(object):
                     exitcode = self.process.poll()
                     if exitcode:
                         break
-                    logging.debug('waiting for ArpSpoofing to terminate (' + str(t) + '/20)')
+                    logger.debug('waiting for ArpSpoofing to terminate (' + str(t) + '/20)')
                     time.sleep(1)
                 self.process.kill()
                 exitcode = self.process.poll()
-                logging.debug('ArpSpoofing killed')
+                logger.debug('ArpSpoofing killed')
 
             self.process = None
             self.state = self.__class__.State.terminated
@@ -134,7 +136,7 @@ class ArpSpoofing(object):
         Running process is stopped, temp files are closed and deleted,
         :return:
         """
-        logging.debug('ArpSpoofing clean')
+        logger.debug('ArpSpoofing clean')
         # if the process is running, stop it and then clean
         if self.process:
             self.stop()
