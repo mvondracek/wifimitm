@@ -1,3 +1,5 @@
+dictionaries/*
+!dictionaries/dictionary0.lst
 /networks/
 /setup/AP config
 /libs

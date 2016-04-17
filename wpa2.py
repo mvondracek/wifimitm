@@ -87,7 +87,7 @@ class Wpa2Cracker(object):
         self.process_stdout_r = None
         self.process_stderr_r = None
 
-        self.dictionary = open(os.path.join(os.getcwd(), 'basic_dictionary.lst'), 'r')
+        self.dictionary = open(os.path.join(os.getcwd(), 'dictionaries', 'dictionary0.lst'), 'r')
         self.personalize_dictionary()
 
     def personalize_dictionary(self):
