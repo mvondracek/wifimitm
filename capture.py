@@ -136,6 +136,7 @@ class Dumpcap(UpdatableProcess):
                     if m:
                         self.cap_file_path = m.group('cap_file_path')
                         logger.debug("Saving capture to '{}'.".format(self.cap_file_path))
+                        print("Saving capture to '{}'.".format(self.cap_file_path))
                         self.state = self.State.AWAITING_PACKETS
                         continue
                     assert False, 'Unexpected stderr of dumpcap.' + line + str(self)
