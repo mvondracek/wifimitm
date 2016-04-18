@@ -594,7 +594,10 @@ class WepAttacker(object):
                 fake_authentication.update_state()
                 if fake_authentication.flags['needs_prga_xor']:
                     # deauthenticate stations to acquire prga_xor
-                    tmp_ap = capturer.get_capture_result()[0]
+                    capture_result = []
+                    while len(capture_result) == 0:
+                        capture_result = capturer.get_capture_result()
+                    tmp_ap = capture_result[0]
                     while not capturer.has_prga_xor():
                         for st in tmp_ap.associated_stations:
                             deauthenticate(self.if_mon, st)
