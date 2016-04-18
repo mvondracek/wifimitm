@@ -207,11 +207,11 @@ def interface_exists(name: str) -> bool:
 class WirelessInterface(object):
     def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
         s = 'WirelessInterface(' + ', '.join([
-            self.name,
-            self.mac_address,
-            self.channel,
-            self.driver,
-            self.chipset
+            str(self.name),
+            str(self.mac_address),
+            str(self.channel),
+            str(self.driver),
+            str(self.chipset)
         ])
         if self.monitor_mode:
             s += ', monitor'
