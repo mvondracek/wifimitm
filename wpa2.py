@@ -193,6 +193,8 @@ class Wpa2Cracker(object):
         self.process_stderr_w.close()
         self.process_stderr_w = None
 
+        self.dictionary.close()
+
         # remove tmp
         self.tmp_dir.cleanup()
         self.tmp_dir = None
