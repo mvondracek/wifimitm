@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-sandbox file for testing available functionality
+WiFi Machine-in-the-Middle - command line interface
 
 Automatization of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT
