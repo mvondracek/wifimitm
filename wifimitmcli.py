@@ -7,6 +7,9 @@ Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
 """
+
+__version__ = '0.1'
+
 import argparse
 import logging
 import sys
