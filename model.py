@@ -192,6 +192,18 @@ class WirelessAccessPoint(object):
             logger.debug(self.essid + ' wpa_handshake_cap known')
 
 
+def interface_exists(name: str) -> bool:
+    """
+    Check if interface with given name exists.
+    Does not check whether given name is *wireless* interface.
+    :type name: str
+    :param name: interface name
+    :rtype: bool
+    :return: True if interface exists, False otherwise.
+    """
+    return name in netifaces.interfaces()
+
+
 class WirelessInterface(object):
     def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
         s = 'WirelessInterface(' + ', '.join([
@@ -211,6 +223,9 @@ class WirelessInterface(object):
         Raises:
             ValueError if name is not a valid interface name
         """
+        if not interface_exists(name):
+            raise ValueError('You must specify a valid interface name.')
+
         self.name_original = name
         self.name_monitor = None
 
