@@ -84,7 +84,7 @@ def main():
         else:
             exitcode = ExitCode.EX_UNAVAILABLE
         print(e.requirement.msg, file=sys.stderr)
-        print('Requirements check failed. Error logged, exiting. ({})'.format(exitcode.name))
+        print('Requirements check failed.')
         return exitcode.value
 
     print(config.PROGRAM_DESCRIPTION)
@@ -112,6 +112,7 @@ def main():
             interface.start_monitor_mode(target.channel)
             wireless_unlocker = WirelessUnlocker(ap=target, if_mon=interface.name)
             try:
+                print('unlocking')
                 wireless_unlocker.start()
             except PassphraseNotInDictionaryError:
                 interface.stop_monitor_mode()
@@ -119,11 +120,15 @@ def main():
                 return ExitCode.PASSPHRASE_NOT_IN_DICTIONARY.value
 
             interface.stop_monitor_mode()
+            print('unlocked')
 
             wireless_connecter = WirelessConnecter(interface=interface.name)
+            print('connecting')
             wireless_connecter.connect(target)
+            print('connected')
 
             arp_spoofing = ArpSpoofing(interface=interface)
+            print('changing topology of network')
             arp_spoofing.start()
             print('Running until KeyboardInterrupt.')
             try:
