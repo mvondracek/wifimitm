@@ -184,7 +184,7 @@ class Config:
         try:
             i = WirelessInterface(arg)
         except ValueError:
-            raise argparse.ArgumentTypeError('{} is not a valid interface name.'.format(arg))
+            raise argparse.ArgumentTypeError('{} is not a valid interface name'.format(arg))
         else:
             return i
 
