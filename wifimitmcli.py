@@ -41,10 +41,17 @@ class ExitCode(Enum):
     Return codes.
     Some are inspired by sysexits.h.
     """
+    EX_OK = 0
+    """successful termination"""
+
     EX_UNAVAILABLE = 69
     """required program or file does not exist"""
+
     EX_NOPERM = 77
     """permission denied"""
+
+    TARGET_AP_NOT_FOUND = 79
+    """target AP was not found during scan"""
 
 
 def main():
@@ -92,10 +99,6 @@ def main():
                 print('target found ' + target.essid)
                 logger.info('target found ' + target.essid)
                 break
-        else:
-            print('target not found', file=sys.stderr)
-            logger.warning('target not found')
-            return 100
 
         if target:
             interface.start_monitor_mode(target.channel)
@@ -121,8 +124,12 @@ def main():
             arp_spoofing.stop()
             arp_spoofing.clean()
             wireless_connecter.disconnect()
+        else:
+            print('target AP not found', file=sys.stderr)
+            logger.error('target AP not found')
+            return ExitCode.TARGET_AP_NOT_FOUND.value
 
-    return 0
+    return ExitCode.EX_OK.value
 
 
 class Config:
