@@ -22,10 +22,7 @@ logger = logging.getLogger(__name__)
 
 class WirelessStation(object):
     def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
-        return 'WirelessStation(' + ', '.join([
-            self.mac_address,
-            self.power
-        ]) + ')'
+        return '<WirelessStation mac_address={}, power={}>'.format(self.mac_address, self.power)
 
     def __init__(self, mac_address, power):
         self.mac_address = mac_address
@@ -36,26 +33,17 @@ class WirelessStation(object):
 
 class WirelessAccessPoint(object):
     def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
-        s = 'WirelessAccessPoint(' + ', '.join([
-            self.essid,
-            self.bssid
-        ])
+        s = '<WirelessAccessPoint essid={}, bssid={}'.format(self.essid, self.bssid)
 
         if self.is_cracked():
             if 'WEP' in self.encryption:
                 s += ', PSK(0x' + self.cracked_psk + ', "' + bytes.fromhex(self.cracked_psk).decode('ascii') + '"), '
             else:
-                s += ', PSK("' + self.cracked_psk + '"), '
+                s += ', PSK("' + self.cracked_psk + '")'
 
-        s += ', '.join([
-            self.power,
-            self.channel,
-            self.encryption,
-            self.cipher,
-            self.authentication,
-            str(self.wps),
-            self.iv_sum
-        ]) + ')'
+        s += ', power={}, channel={}, encryption={}, cipher={}, authentication={}, wps={}, iv_sum={}>'.format(
+            self.power, self.channel, self.encryption, self.cipher, self.authentication, self.wps, self.iv_sum
+        )
         return s
 
     def __init__(self, bssid, power, channel, encryption, cipher, authentication, wps, essid, iv_sum):
@@ -206,16 +194,17 @@ def interface_exists(name: str) -> bool:
 
 class WirelessInterface(object):
     def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
-        s = 'WirelessInterface(' + ', '.join([
-            str(self.name),
-            str(self.mac_address),
-            str(self.channel),
-            str(self.driver),
-            str(self.chipset)
-        ])
+        s = '<WirelessInterface name={}, mac_address={}, channel={}, driver={}, chipset={}'\
+            .format(
+                self.name,
+                self.mac_address,
+                self.channel,
+                self.driver,
+                self.chipset
+            )
         if self.monitor_mode:
             s += ', monitor'
-        s += ')'
+        s += '>'
         return s
 
     def __init__(self, name, driver=None, chipset=None):
