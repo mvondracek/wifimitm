@@ -25,6 +25,7 @@ from common import WirelessScanner
 from model import WirelessInterface
 from requirements import Requirements, RequirementError, UidRequirement
 from topology import ArpSpoofing
+from wpa2 import PassphraseNotInDictionaryError
 
 with open('VERSION') as version_file:
     __version__ = version_file.read().strip()
@@ -52,6 +53,9 @@ class ExitCode(Enum):
 
     TARGET_AP_NOT_FOUND = 79
     """target AP was not found during scan"""
+
+    PASSPHRASE_NOT_IN_DICTIONARY = 80
+    """WPA/WPA2 passphrase was not found in available dictionary/dictionaries"""
 
 
 def main():
@@ -103,7 +107,13 @@ def main():
         if target:
             interface.start_monitor_mode(target.channel)
             wireless_unlocker = WirelessUnlocker(ap=target, if_mon=interface.name)
-            wireless_unlocker.start()
+            try:
+                wireless_unlocker.start()
+            except PassphraseNotInDictionaryError:
+                interface.stop_monitor_mode()
+                print('Passphrase not in dictionary.', file=sys.stderr)
+                return ExitCode.PASSPHRASE_NOT_IN_DICTIONARY.value
+
             interface.stop_monitor_mode()
 
             wireless_connecter = WirelessConnecter(interface=interface.name)
