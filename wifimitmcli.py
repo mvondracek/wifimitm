@@ -53,7 +53,10 @@ def main():
 
     config = Config()
     config.parse_args()
-    coloredlogs.install(level=logging.getLevelName(config.logging_level))
+    if config.logging_level:
+        coloredlogs.install(level=config.logging_level)
+    # else:
+    #    TODO(xvondr20): disable logger
     logger.info('config parsed from args')
     logger.debug(str(config))
 
@@ -129,11 +132,13 @@ class Config:
                            'warning': logging.WARNING,
                            'info': logging.INFO,
                            'error': logging.ERROR,
-                           'critical': logging.ERROR}
-    LOGGING_LEVEL_DEFAULT = 'info'
+                           'critical': logging.ERROR,
+                           'disabled': None,  # logging disabled
+                           }
+    LOGGING_LEVEL_DEFAULT = 'disabled'
 
     def __init__(self):
-        self.logging_level = self.LOGGING_LEVELS_DICT[self.LOGGING_LEVEL_DEFAULT]
+        self.logging_level = None
         self.essid = None
         # TODO(xvondr20) Implement BSSID arg self.target_bssid = None
         self.interface = None
@@ -180,7 +185,6 @@ class Config:
                             # NOTE: The type is called before check against choices. In order to display logging level
                             # names as choices, name to level int value conversion cannot be done here. Conversion is
                             # done after parser call in `self.parse_args`.
-                            # type=cls.parser_type_logging_level,
                             default=cls.LOGGING_LEVEL_DEFAULT,
                             choices=cls.LOGGING_LEVELS_DICT,
                             help='select logging level (default: %(default)s)'
@@ -203,13 +207,13 @@ class Config:
         :type args: Optional[Sequence[str]]
         :param args: argument strings
         """
-        # NOTE: Call to parse_args does not set logging_level with default value if argument is not in args. Why?
-        self.parser.parse_args(args=args, namespace=self)
+        # NOTE: Call to parse_args with namespace=self does not set logging_level with default value, if argument is not
+        # in provided args, for some reason.
+        parsed_args = self.parser.parse_args(args=args)
         # name to value conversion as noted in `self.init_parser`
-        if isinstance(self.logging_level, str) and self.logging_level in self.LOGGING_LEVELS_DICT:
-            # If logging_level was set by `self.parser.parse_args(args=args, namespace=self)`, then it is a string key
-            # from self.LOGGING_LEVELS_DICT. In that case it needs to be translated to integer value of logging level.
-            self.logging_level = self.LOGGING_LEVELS_DICT[self.logging_level]
+        self.logging_level = self.LOGGING_LEVELS_DICT[parsed_args.logging_level]
+        self.essid = parsed_args.essid
+        self.interface = parsed_args.interface
 
 
 if __name__ == '__main__':
