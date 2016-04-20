@@ -8,4 +8,9 @@ Martin Vondracek
 2016
 """
 
-__all__ = ['access', 'capture', 'common', 'main', 'model', 'topology', 'UpdatableProcess', 'wep', 'wpa2']
+import logging
+
+__all__ = ['access', 'capture', 'common', 'model', 'topology', 'updatableProcess', 'wep', 'wpa2']
+
+# Set default logging handler to avoid "No handler found" warnings.
+logging.getLogger(__name__).addHandler(logging.NullHandler())
