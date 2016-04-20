@@ -16,6 +16,7 @@ import sys
 import tempfile
 import time
 import warnings
+from enum import Enum, unique
 from typing import Optional, Sequence
 
 import coloredlogs
@@ -31,6 +32,18 @@ __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
 logger = logging.getLogger(__name__)
+
+
+@unique
+class ExitCode(Enum):
+    """
+    Return codes.
+    Some are inspired by sysexits.h.
+    """
+    EX_UNAVAILABLE = 69
+    """required program or file does not exist"""
+    EX_NOPERM = 77
+    """permission denied"""
 
 
 def main():
