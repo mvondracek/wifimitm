@@ -46,6 +46,9 @@ class ExitCode(Enum):
     EX_OK = 0
     """successful termination"""
 
+    ARGUMENTS = 2
+    """incorrect or missing program arguments"""
+
     EX_UNAVAILABLE = 69
     """required program or file does not exist"""
 
