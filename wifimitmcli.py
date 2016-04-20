@@ -19,8 +19,7 @@ from typing import Optional, Sequence
 
 import coloredlogs
 
-import access
-from access import WirelessUnlocker, WirelessConnecter
+from access import WirelessUnlocker, WirelessConnecter, list_wifi_interfaces
 from capture import Dumpcap
 from common import WirelessScanner
 from model import WirelessInterface
@@ -249,7 +248,7 @@ class Config:
         parsed_args = self.parser.parse_args(args=args)
 
         # Check if provided interface name is recognized as wireless interface name.
-        for i in access.list_wifi_interfaces():
+        for i in list_wifi_interfaces():
             if i.name == parsed_args.interface.name:
                 break
         else:
