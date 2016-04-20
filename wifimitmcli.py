@@ -10,6 +10,7 @@ Martin Vondracek
 
 import argparse
 import logging
+import os
 import sys
 import tempfile
 import time
@@ -27,7 +28,7 @@ from requirements import Requirements, RequirementError, UidRequirement
 from topology import ArpSpoofing
 from wpa2 import PassphraseNotInDictionaryError
 
-with open('VERSION') as version_file:
+with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'VERSION')) as version_file:
     __version__ = version_file.read().strip()
 
 __author__ = 'Martin Vondracek'
