@@ -19,6 +19,7 @@ from typing import Optional, Sequence
 
 import coloredlogs
 
+import access
 from access import WirelessUnlocker, WirelessConnecter
 from capture import Dumpcap
 from common import WirelessScanner
@@ -227,6 +228,16 @@ class Config:
         # NOTE: Call to parse_args with namespace=self does not set logging_level with default value, if argument is not
         # in provided args, for some reason.
         parsed_args = self.parser.parse_args(args=args)
+
+        # Check if provided interface name is recognized as wireless interface name.
+        for i in access.list_wifi_interfaces():
+            if i.name == parsed_args.interface.name:
+                break
+        else:
+            self.parser.error('argument interface: {} is not recognized as a valid wireless interface'.format(
+                    parsed_args.interface.name)
+            )
+
         # name to value conversion as noted in `self.init_parser`
         self.logging_level = self.LOGGING_LEVELS_DICT[parsed_args.logging_level]
         self.essid = parsed_args.essid
