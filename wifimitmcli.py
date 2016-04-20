@@ -25,7 +25,7 @@ from access import WirelessUnlocker, WirelessConnecter
 from capture import Dumpcap
 from common import WirelessScanner
 from model import WirelessInterface
-from requirements import Requirements
+from requirements import Requirements, RequirementError, UidRequirement
 from topology import ArpSpoofing
 
 __author__ = 'Martin Vondracek'
@@ -57,9 +57,16 @@ def main():
     logger.debug(str(config))
 
     logger.info('check all requirements')
-    if not Requirements.check_all():
-        print('Requirements check failed. Error logged, exiting. (EX_UNAVAILABLE=69)')
-        return 69
+    try:
+        Requirements.check_all()
+    except RequirementError as e:
+        if isinstance(e.requirement, UidRequirement):
+            exitcode = ExitCode.EX_NOPERM
+        else:
+            exitcode = ExitCode.EX_UNAVAILABLE
+        print(e.requirement.msg, file=sys.stderr)
+        print('Requirements check failed. Error logged, exiting. ({})'.format(exitcode.name))
+        return exitcode.value
 
     print(config.PROGNAME)
 
