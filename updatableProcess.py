@@ -54,13 +54,16 @@ class UpdatableProcess(ABC, subprocess.Popen):
     _popen_initialized = False  # important for destructor, see `self.__del__()`
     _finalizer_initialized = False  # important for cleanup called from destructor, see `self.__del__()`
 
-    def __init__(self, args):
+    def __init__(self, args, stdout=None):
         self.cleaned = False
         # temp files (write, read) for stdout and stderr
         self.tmp_dir = tempfile.TemporaryDirectory(prefix=type(self).__name__)
 
-        self.stdout_w = open(os.path.join(self.tmp_dir.name, 'stdout.txt'), mode='w')
-        self.stdout_r = open(os.path.join(self.tmp_dir.name, 'stdout.txt'), mode='r')
+        if stdout:
+            self.stdout_w = stdout
+        else:
+            self.stdout_w = open(os.path.join(self.tmp_dir.name, 'stdout.txt'), mode='w')
+            self.stdout_r = open(os.path.join(self.tmp_dir.name, 'stdout.txt'), mode='r')
 
         self.stderr_w = open(os.path.join(self.tmp_dir.name, 'stderr.txt'), mode='w')
         self.stderr_r = open(os.path.join(self.tmp_dir.name, 'stderr.txt'), mode='r')
