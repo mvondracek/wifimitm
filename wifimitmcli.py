@@ -69,7 +69,7 @@ def main():
         print('Requirements check failed. Error logged, exiting. ({})'.format(exitcode.name))
         return exitcode.value
 
-    print(config.PROGNAME)
+    print(config.PROGRAM_DESCRIPTION)
 
     interface = config.interface
 
@@ -123,7 +123,8 @@ def main():
 
 
 class Config:
-    PROGNAME = 'WiFi Machine-in-the-Middle - command line interface'
+    PROGRAM_NAME = 'wifimitmcli'
+    PROGRAM_DESCRIPTION = 'WiFi Machine-in-the-Middle - command line interface'
     LOGGING_LEVELS_DICT = {'debug': logging.DEBUG,
                            'warning': logging.WARNING,
                            'info': logging.INFO,
@@ -169,7 +170,8 @@ class Config:
         :return: initialized parser
         """
         parser = argparse.ArgumentParser(
-            description=cls.PROGNAME,
+            prog=cls.PROGRAM_NAME,
+            description=cls.PROGRAM_DESCRIPTION,
             epilog="Automatization of MitM Attack on WiFi Networks, Bachelor's Thesis, UIFS FIT VUT,"
                    " Martin Vondracek, 2016."
         )
