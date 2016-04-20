@@ -171,13 +171,13 @@ class Config:
     LOGGING_LEVEL_DEFAULT = 'disabled'
 
     def __init__(self):
-        self.logging_level = None
+        self.logging_level = None  # type: Optional[int]
         self.capture_file = None  # type: Optional[BinaryIO]  TODO(xvondr20) Close if dumpcap did not close it.
-        self.essid = None
+        self.essid = None  # type: Optional[str]
         # TODO(xvondr20) Implement BSSID arg self.target_bssid = None
-        self.interface = None
+        self.interface = None  # type: Optional[WirelessInterface]
 
-        self.parser = self.init_parser()
+        self.parser = self.init_parser()  # type: argparse.ArgumentParser
 
     def __str__(self):
         return '<{} logging_level={}, essid={}, interface={!s}>'.format(
@@ -229,8 +229,7 @@ class Config:
                             )
 
         target_ap = parser.add_argument_group(title='Target AP')
-        target_ap.add_argument('essid',
-                               help='essid of network for attack'),
+        target_ap.add_argument('essid', help='essid of network for attack')
         parser.add_argument('interface',
                             type=cls.parser_type_wireless_interface,
                             help='wireless network interface for attack'
