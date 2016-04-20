@@ -8,8 +8,6 @@ Martin Vondracek
 2016
 """
 
-__version__ = '0.1'
-
 import argparse
 import logging
 import sys
@@ -27,6 +25,9 @@ from common import WirelessScanner
 from model import WirelessInterface
 from requirements import Requirements, RequirementError, UidRequirement
 from topology import ArpSpoofing
+
+with open('VERSION') as version_file:
+    __version__ = version_file.read().strip()
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -172,6 +173,7 @@ class Config:
             epilog="Automatization of MitM Attack on WiFi Networks, Bachelor's Thesis, UIFS FIT VUT,"
                    " Martin Vondracek, 2016."
         )
+        parser.add_argument('-v', '--version', action='version', version='%(prog)s {}'.format(__version__))
         parser.add_argument('-ll', '--logging-level',
                             # NOTE: The type is called before check against choices. In order to display logging level
                             # names as choices, name to level int value conversion cannot be done here. Conversion is
