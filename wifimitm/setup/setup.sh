@@ -9,12 +9,13 @@
 ##
 
 # TODO airodump-ng-oui-update
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo "config simlinks"
 
 TASK="NetworkManager.conf"
 sudo ln --symbolic --force \
-"$(pwd)/etc/NetworkManager/NetworkManager.conf" \
+"${SCRIPT_DIR}/etc/NetworkManager/NetworkManager.conf" \
       /etc/NetworkManager/NetworkManager.conf
 
 if [[ $? -eq 0 ]]; then

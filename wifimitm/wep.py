@@ -36,7 +36,7 @@ import tempfile
 import time
 from enum import Enum, unique
 
-from common import WirelessCapturer, deauthenticate
+from .common import WirelessCapturer, deauthenticate
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'

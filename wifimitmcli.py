@@ -20,13 +20,13 @@ from typing import Optional, Sequence
 
 import coloredlogs
 
-from access import WirelessUnlocker, WirelessConnecter, list_wifi_interfaces
-from capture import Dumpcap
-from common import WirelessScanner
-from model import WirelessInterface
-from requirements import Requirements, RequirementError, UidRequirement
-from topology import ArpSpoofing
-from wpa2 import PassphraseNotInDictionaryError
+from wifimitm.access import WirelessUnlocker, WirelessConnecter, list_wifi_interfaces
+from wifimitm.capture import Dumpcap
+from wifimitm.common import WirelessScanner
+from wifimitm.model import WirelessInterface
+from wifimitm.requirements import Requirements, RequirementError, UidRequirement
+from wifimitm.topology import ArpSpoofing
+from wifimitm.wpa2 import PassphraseNotInDictionaryError
 
 with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'VERSION')) as version_file:
     __version__ = version_file.read().strip()

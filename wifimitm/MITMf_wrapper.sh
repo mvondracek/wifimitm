@@ -11,7 +11,8 @@
 ## Error exit codes
 EX_UNAVAILABLE=69
 
-PROJECT_DIR=$(pwd)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_DIR=${SCRIPT_DIR}
 LIBS_DIR=${PROJECT_DIR}/libs
 PROGNAME=$(basename $0)
 

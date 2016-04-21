@@ -19,7 +19,7 @@ import tempfile
 import time
 from enum import Enum, unique
 
-from model import WirelessInterface
+from .model import WirelessInterface
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -73,7 +73,7 @@ class ArpSpoofing(object):
         self.process_stderr_w = tempfile.NamedTemporaryFile(prefix='ArpSpoofing-stderr')
         self.process_stderr_r = open(self.process_stderr_w.name, 'r')
 
-        cmd = [os.path.join(os.getcwd(), 'MITMf_wrapper.sh'),
+        cmd = [os.path.join(os.path.dirname(os.path.realpath(__file__)), 'MITMf_wrapper.sh'),
                '-i', self.interface.name,
                '--spoof', '--arp',
                '--gateway', self.interface.gateway]

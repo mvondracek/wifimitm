@@ -29,7 +29,7 @@ import tempfile
 import time
 from enum import Enum, unique
 
-from common import WirelessCapturer, deauthenticate
+from .common import WirelessCapturer, deauthenticate
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -87,7 +87,8 @@ class Wpa2Cracker(object):
         self.process_stdout_r = None
         self.process_stderr_r = None
 
-        self.dictionary = open(os.path.join(os.getcwd(), 'dictionaries', 'dictionary0.lst'), 'r')
+        self.dictionary = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                            'dictionaries', 'dictionary0.lst'), 'r')
         self.personalize_dictionary()
 
     def personalize_dictionary(self):

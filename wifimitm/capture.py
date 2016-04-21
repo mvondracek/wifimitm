@@ -19,8 +19,8 @@ import re
 from enum import Enum, unique
 from typing import Union, Dict, Optional, BinaryIO
 
-from updatableProcess import UpdatableProcess
-from model import WirelessInterface
+from .updatableProcess import UpdatableProcess
+from .model import WirelessInterface
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'

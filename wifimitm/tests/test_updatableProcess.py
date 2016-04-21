@@ -10,7 +10,7 @@ Martin Vondracek
 import typing as _typing
 import unittest as _unittest
 
-from updatableProcess import UpdatableProcess
+from wifimitm.updatableProcess import UpdatableProcess
 
 
 class TestUpdatableProcess(_unittest.TestCase):

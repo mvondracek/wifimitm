@@ -15,7 +15,7 @@ import tempfile
 import time
 from enum import Enum, unique
 
-from model import WirelessAccessPoint, WirelessStation
+from .model import WirelessAccessPoint, WirelessStation
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'

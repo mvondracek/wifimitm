@@ -12,9 +12,9 @@ import os
 import re
 import subprocess
 
-from model import WirelessInterface
-from wep import WepAttacker
-from wpa2 import Wpa2Attacker
+from .model import WirelessInterface
+from .wep import WepAttacker
+from .wpa2 import Wpa2Attacker
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'

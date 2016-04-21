@@ -3,11 +3,11 @@
 # Martin Vondracek
 # 2016
 
-dictionaries/*
-!dictionaries/dictionary0.lst
-networks/
-setup/AP config
-libs
+wifimitm/dictionaries/*
+!wifimitm/dictionaries/dictionary0.lst
+wifimitm/networks/
+wifimitm/setup/AP config
+wifimitm/libs
 
 ### Python
 # Byte-compiled / optimized / DLL files
