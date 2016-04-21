@@ -70,8 +70,8 @@ def main():
     config.parse_args()
     if config.logging_level:
         coloredlogs.install(level=config.logging_level)
-    # else:
-    #    TODO(xvondr20): disable logger
+    else:
+        logging.disable(logging.CRITICAL)
     logger.info('config parsed from args')
     logger.debug(str(config))
 
