@@ -66,7 +66,7 @@ announce_task "${TASK}"
 chmod +x ${PROJECT_DIR}/MITMf_wrapper.sh
 check_task_result $? "${TASK}"
 
-read
+
 TASK="Make libs dir"
 announce_task "${TASK}"
 mkdir --parents ${LIBS_DIR}
