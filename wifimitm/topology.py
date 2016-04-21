@@ -94,7 +94,7 @@ class ArpSpoofing(object):
 
         # check every added line in stdout
         for line in self.process_stdout_r:
-            if not self.spoof_started_found and line == '[MITMf] start successful\n':
+            if not self.spoof_started_found and line == '|_ SMB server online\n':
                 self.spoof_started_found = True
             elif self.spoof_started_found and line != '\n':
                 print('ArpSpoofing stdout:' + line, end='')
