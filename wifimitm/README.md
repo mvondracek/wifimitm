@@ -1,4 +1,4 @@
-# Automatization of MitM Attack on WiFi Networks
+# Automation of MitM Attack on WiFi Networks
 - [Bachelor Project Specification](#bachelor-project-specification)
 ---
 
@@ -10,7 +10,7 @@ Department of Information Systems, Academic year 2015/2016
 
 For: **Vondráček Martin**  
 Branch of study: Information Technology  
-Title: **Automatization of MitM Attack on WiFi Networks**  
+Title: **Automation of MitM Attack on WiFi Networks**
 Category: Networking
 
 ### Instructions for project work

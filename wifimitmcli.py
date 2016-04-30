@@ -2,7 +2,7 @@
 """
 WiFi Machine-in-the-Middle - command line interface
 
-Automatization of MitM Attack on WiFi Networks
+Automation of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
@@ -211,7 +211,7 @@ class Config:
         parser = argparse.ArgumentParser(
             prog=cls.PROGRAM_NAME,
             description=cls.PROGRAM_DESCRIPTION,
-            epilog="Automatization of MitM Attack on WiFi Networks, Bachelor's Thesis, UIFS FIT VUT,"
+            epilog="Automation of MitM Attack on WiFi Networks, Bachelor's Thesis, UIFS FIT VUT,"
                    " Martin Vondracek, 2016."
         )
         parser.add_argument('-v', '--version', action='version', version='%(prog)s {}'.format(__version__))
