@@ -10,7 +10,6 @@ Martin Vondracek
 
 import argparse
 import logging
-import os
 import sys
 import tempfile
 import time
@@ -19,6 +18,7 @@ from enum import Enum, unique
 from typing import Optional, Sequence
 
 import coloredlogs
+import setuptools_scm
 
 from wifimitm.access import WirelessUnlocker, WirelessConnecter, list_wifi_interfaces
 from wifimitm.capture import Dumpcap
@@ -28,9 +28,7 @@ from wifimitm.requirements import Requirements, RequirementError, UidRequirement
 from wifimitm.topology import ArpSpoofing
 from wifimitm.wpa2 import PassphraseNotInDictionaryError
 
-with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'VERSION')) as version_file:
-    __version__ = version_file.read().strip()
-
+__version__ = setuptools_scm.get_version()
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
