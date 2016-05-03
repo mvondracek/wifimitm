@@ -28,7 +28,6 @@ setup(
     url='http://www.stud.fit.vutbr.cz/~xvondr20/wifimitm/',
 
     use_scm_version=True,
-    version='0.1',
     setup_requires=['setuptools_scm'],
 
     packages=['wifimitm', 'wifimitm.tests'],
