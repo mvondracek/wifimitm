@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##
 ## MITMf wrapper
 ##
@@ -11,9 +11,7 @@
 ## Error exit codes
 EX_UNAVAILABLE=69
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_DIR=${SCRIPT_DIR}
-LIBS_DIR=${PROJECT_DIR}/libs
+MITMF_DIR="/opt/MITMf"
 PROGNAME=$(basename $0)
 
 ## Print error message and exit
@@ -26,8 +24,8 @@ function error_exit
 }
 
 
-source ${LIBS_DIR}/ve_MITMf/bin/activate || error_exit $? "activate virtualenv"
-cd ${LIBS_DIR}/MITMf || error_exit $? "cd to MITMf directory"
+source ${MITMF_DIR}/ve_MITMf/bin/activate || error_exit $? "activate virtualenv"
+cd ${MITMF_DIR}/MITMf || error_exit $? "cd to MITMf directory"
 
 python mitmf.py $*
 MITMF_EXITCODE=$?

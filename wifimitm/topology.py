@@ -6,11 +6,6 @@ Automation of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
-
-#Implementation notes
-- MITMf requires python2.7 and virtualenv, therefore it's called using MITMf_wrapper.sh which is able to pass
-  the script arguments and return exitcode of MITMf.
-
 """
 import logging
 import os
@@ -73,7 +68,7 @@ class ArpSpoofing(object):
         self.process_stderr_w = tempfile.NamedTemporaryFile(prefix='ArpSpoofing-stderr')
         self.process_stderr_r = open(self.process_stderr_w.name, 'r')
 
-        cmd = [os.path.join(os.path.dirname(os.path.realpath(__file__)), 'MITMf_wrapper.sh'),
+        cmd = ['mitmf',
                '-i', self.interface.name,
                '--spoof', '--arp',
                '--gateway', self.interface.gateway]

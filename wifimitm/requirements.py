@@ -134,6 +134,7 @@ class Requirements(object):
         CommandRequirement('aireplay-ng'),
         CommandRequirement('netctl'),
         CommandRequirement('dumpcap'),
+        CommandRequirement('mitmf'),
         UidRequirement(UidRequirement.UID_ROOT)
     ]  # type: List[Requirement]
 
