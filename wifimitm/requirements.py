@@ -135,6 +135,7 @@ class Requirements(object):
         CommandRequirement('netctl'),
         CommandRequirement('dumpcap'),
         CommandRequirement('mitmf'),
+        CommandRequirement('upc_keys'),
         UidRequirement(UidRequirement.UID_ROOT)
     ]  # type: List[Requirement]
 
