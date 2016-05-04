@@ -61,13 +61,13 @@ function main()
 
     TASK="MITMf"
     announce_task "${TASK}"
-    ${SCRIPT_DIR}/install/MITMf_install.sh
+    ${SCRIPT_DIR}/install/MITMf/MITMf_install.sh
     check_task_result $? "${TASK}"
 
 
-    TASK="MITMf"
+    TASK="upc_keys"
     announce_task "${TASK}"
-    ${SCRIPT_DIR}/install/upc_keys_install.sh
+    ${SCRIPT_DIR}/install/upc_keys/upc_keys_install.sh
     check_task_result $? "${TASK}"
 
 
