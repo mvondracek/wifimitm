@@ -71,6 +71,12 @@ function main()
     check_task_result $? "${TASK}"
 
 
+    TASK="wifiphisher"
+    announce_task "${TASK}"
+    ${SCRIPT_DIR}/install/wifiphisher/wifiphisher_install.sh
+    check_task_result $? "${TASK}"
+
+
     check_task_result true "install"
     exit 0
 }

@@ -1,0 +1,132 @@
+diff -Naur wifiphisher/requirements.txt wifiphisher-fork/requirements.txt
+--- wifiphisher/requirements.txt	1970-01-01 00:00:00.000000000 +0000
++++ wifiphisher-fork/requirements.txt	2016-05-04 16:09:40.643789000 +0000
+@@ -0,0 +1,4 @@
++argparse
++logging
++scapy
++mock
+diff -Naur wifiphisher/wifiphisher/pywifiphisher.py wifiphisher-fork/wifiphisher/pywifiphisher.py
+--- wifiphisher/wifiphisher/pywifiphisher.py	2016-05-04 18:57:39.163353950 +0000
++++ wifiphisher-fork/wifiphisher/pywifiphisher.py	2016-05-04 20:29:21.459782000 +0000
+@@ -31,12 +31,12 @@
+ def parse_args():
+     # Create the arguments
+     parser = argparse.ArgumentParser()
+-    parser.add_argument(
+-        "-c",
+-        "--channel",
+-        help="Choose the channel for monitoring. Default is channel 1",
+-        default="1"
+-    )
++    # parser.add_argument(
++    #     "-c",
++    #     "--channel",
++    #     help="Choose the channel for monitoring. Default is channel 1",
++    #     default="1"
++    # )
+     parser.add_argument(
+         "-s",
+         "--skip",
+@@ -99,11 +99,11 @@
+               "the access points and only send them to client/AP pairs"
+               ),
+         action='store_true')
+-    parser.add_argument(
+-        "-a",
+-        "--accesspoint",
+-        help="Enter the MAC address of a specific access point to target"
+-    )
++    # parser.add_argument(
++    #     "-a",
++    #     "--accesspoint",
++    #     help="Enter the MAC address of a specific access point to target"
++    # )
+ 
+     parser.add_argument(
+         "-T",
+@@ -117,6 +117,22 @@
+         "--presharedkey",
+         help=("Add WPA/WPA2 protection on the rogue Access Point"))
+ 
++    parser.add_argument(
++        "--ap-bssid",
++        required=True,
++        help="BSSID of the targeted AP",
++    )
++    parser.add_argument(
++        "--ap-essid",
++        required=True,
++        help="ESSID of the targeted AP",
++    )
++    parser.add_argument(
++        "--ap-ch",
++        required=True,
++        help="Channel of the targeted AP",
++    )
++
+     return parser.parse_args()
+ 
+ def check_args(args):
+@@ -345,19 +361,21 @@
+     with open('/tmp/hostapd.conf', 'w') as dhcpconf:
+             dhcpconf.write(config % (mon_iface, essid, channel))
+ 
+-    Popen(['hostapd', '/tmp/hostapd.conf', '-f', '/tmp/wifiphisher-hostapd.log'], stdout=DN, stderr=DN)
+-    try:
+-        time.sleep(6)  # Copied from Pwnstar which said it was necessary?
+-        proc = check_output(['cat', '/tmp/wifiphisher-hostapd.log'])
+-        if 'driver initialization failed' in proc:
+-            print('[' + R + '+' + W +
+-                  '] Driver initialization failed! (hostapd error)\n' +
+-                  '[' + R + '+' + W +
+-                  '] Try a different wireless interface using -aI option.'
+-                  )
++    from tempfile import NamedTemporaryFile
++    with NamedTemporaryFile(prefix='wifiphisher-hostapd.log') as logfile:
++        Popen(['hostapd', '/tmp/hostapd.conf'], stdout=logfile, stderr=subprocess.STDOUT)
++        try:
++            time.sleep(6)  # Copied from Pwnstar which said it was necessary?
++            proc = check_output(['cat', logfile.name])
++            if 'driver initialization failed' in proc:
++                print('[' + R + '+' + W +
++                      '] Driver initialization failed! (hostapd error)\n' +
++                      '[' + R + '+' + W +
++                      '] Try a different wireless interface using -aI option.'
++                      )
++                shutdown()
++        except KeyboardInterrupt:
+             shutdown()
+-    except KeyboardInterrupt:
+-        shutdown()
+ 
+ 
+ def dhcp_conf(interface):
+@@ -810,14 +828,19 @@
+ 
+     print '[' + T + '*' + W + '] Cleared leases, started DHCP, set up iptables'
+ 
+-    # Copy AP
+-    time.sleep(3)
+-    hop = Thread(target=channel_hop, args=(mon_iface,))
+-    hop.daemon = True
+-    hop.start()
+-    sniffing(mon_iface, targeting_cb)
+-    channel, essid, ap_mac = copy_AP()
+-    hop_daemon_running = False
++    # targeted AP is provided from args
++    args.ap_bssid = args.ap_bssid.replace(':','-').lower()  # rest of the code expects bssid separated by '-'
++    APs = [[args.ap_ch, args.ap_essid, args.ap_bssid]]
++    channel, essid, ap_mac = APs[0]
++
++    # # Copy AP
++    # time.sleep(3)
++    # hop = Thread(target=channel_hop, args=(mon_iface,))
++    # hop.daemon = True
++    # hop.start()
++    # sniffing(mon_iface, targeting_cb)
++    # channel, essid, ap_mac = copy_AP()
++    # hop_daemon_running = False
+ 
+     # get the correct template
+     template = select_template(args.template)

@@ -136,6 +136,7 @@ class Requirements(object):
         CommandRequirement('dumpcap'),
         CommandRequirement('mitmf'),
         CommandRequirement('upc_keys'),
+        CommandRequirement('wifiphisher'),
         UidRequirement(UidRequirement.UID_ROOT)
     ]  # type: List[Requirement]
 
