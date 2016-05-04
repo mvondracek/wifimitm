@@ -9,8 +9,8 @@
 ##
 
 
-INSTALL_NAME="wifiphisher"
-INSTALL_CMD="wifiphisher"
+INSTALL_NAME="MITMf"
+INSTALL_CMD="mitmf"
 
 
 ## Error exit codes
