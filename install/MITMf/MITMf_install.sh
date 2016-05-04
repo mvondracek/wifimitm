@@ -9,6 +9,10 @@
 ##
 
 
+INSTALL_NAME="wifiphisher"
+INSTALL_CMD="wifiphisher"
+
+
 ## Error exit codes
 ERR_TASK=101
 
@@ -45,7 +49,7 @@ function announce_task()
 ##   $1 signal number
 function stop()
 {
-    echo -e "[\e[31mFAIL\e[0m] ${PROGNAME}: MITMf install" >&2
+    echo -e "[\e[31mFAIL\e[0m] ${PROGNAME}: ${INSTALL_NAME} install" >&2
     exit $(expr 128 + ${1?})
 }
 
@@ -57,7 +61,7 @@ trap "stop 15" SIGTERM
 
 function main()
 {
-    announce_task "MITMf install"
+    announce_task "${INSTALL_NAME} install"
 
 
     TASK="install requirements using pacman"
@@ -82,15 +86,15 @@ function main()
     check_task_result $? "${TASK}"
 
 
-    TASK="Create ve_MITMf virtualenv"
+    TASK="Create ve_${INSTALL_NAME} virtualenv"
     announce_task "${TASK}"
-    virtualenv ve_MITMf -p /usr/bin/python2.7
+    virtualenv ve_${INSTALL_NAME} -p /usr/bin/python2.7
     check_task_result $? "${TASK}"
 
 
-    TASK="Activate ve_MITMf virtualenv"
+    TASK="Activate ve_${INSTALL_NAME} virtualenv"
     announce_task "${TASK}"
-    source ${INSTALL_DIR}/ve_MITMf/bin/activate
+    source ${INSTALL_DIR}/ve_${INSTALL_NAME}/bin/activate
     check_task_result $? "${TASK}"
 
 
@@ -112,7 +116,7 @@ function main()
     check_task_result $? "${TASK}"
 
 
-    TASK="Deactivate ve_MITMf virtualenv"
+    TASK="Deactivate ve_${INSTALL_NAME} virtualenv"
     announce_task "${TASK}"
     deactivate
     check_task_result $? "${TASK}"
@@ -132,23 +136,23 @@ function main()
 
     TASK="copy wrapper"
     announce_task "${TASK}"
-    cp --interactive ${SCRIPT_DIR}/MITMf_wrapper.sh ${INSTALL_DIR}/bin/MITMf_wrapper.sh
+    cp --interactive ${SCRIPT_DIR}/${INSTALL_NAME}_wrapper.sh ${INSTALL_DIR}/bin/${INSTALL_NAME}_wrapper.sh
     check_task_result $? "${TASK}"
 
 
     TASK="Set wrapper as executable"
     announce_task "${TASK}"
-    chmod +x ${INSTALL_DIR}/bin/MITMf_wrapper.sh
+    chmod +x ${INSTALL_DIR}/bin/${INSTALL_NAME}_wrapper.sh
     check_task_result $? "${TASK}"
 
 
     TASK="link wrapper"
     announce_task "${TASK}"
-    ln --symbolic --interactive ${INSTALL_DIR}/bin/MITMf_wrapper.sh /usr/bin/mitmf
+    ln --symbolic --interactive ${INSTALL_DIR}/bin/${INSTALL_NAME}_wrapper.sh /usr/bin/${INSTALL_CMD}
     check_task_result $? "${TASK}"
 
 
-    check_task_result true "MITMf install"
+    check_task_result true "${INSTALL_NAME} install"
     exit 0
 }
 

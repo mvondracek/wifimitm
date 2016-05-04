@@ -8,10 +8,14 @@
 ## 2016
 ##
 
+
+INSTALL_NAME="MITMf"
+
+
 ## Error exit codes
 EX_UNAVAILABLE=69
 
-MITMF_DIR="/opt/MITMf"
+INSTALL_DIR="/opt/${INSTALL_NAME}"
 PROGNAME=$(basename $0)
 
 ## Print error message and exit
@@ -24,12 +28,12 @@ function error_exit
 }
 
 
-source ${MITMF_DIR}/ve_MITMf/bin/activate || error_exit $? "activate virtualenv"
-cd ${MITMF_DIR}/MITMf || error_exit $? "cd to MITMf directory"
+source ${INSTALL_DIR}/ve_${INSTALL_NAME}/bin/activate || error_exit $? "activate virtualenv"
+cd ${INSTALL_DIR}/${INSTALL_NAME} || error_exit $? "cd to ${INSTALL_NAME} directory"
 
 python mitmf.py $*
-MITMF_EXITCODE=$?
+EXITCODE=$?
 
 deactivate || error_exit $? "deactivate virtualenv"
 
-exit ${MITMF_EXITCODE}
+exit ${EXITCODE}

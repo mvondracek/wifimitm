@@ -9,11 +9,15 @@
 ##
 
 
+INSTALL_NAME="upc_keys"
+INSTALL_CMD="upc_keys"
+
+
 ## Error exit codes
 ERR_TASK=101
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-INSTALL_DIR="/opt/upc_keys"
+INSTALL_DIR="/opt/${INSTALL_NAME}"
 PROGNAME=$(basename $0)
 
 ## Check install task result
@@ -45,7 +49,7 @@ function announce_task()
 ##   $1 signal number
 function stop()
 {
-    echo -e "[\e[31mFAIL\e[0m] ${PROGNAME}: MITMf install" >&2
+    echo -e "[\e[31mFAIL\e[0m] ${PROGNAME}: ${INSTALL_NAME} install" >&2
     exit $(expr 128 + ${1?})
 }
 
@@ -57,7 +61,7 @@ trap "stop 15" SIGTERM
 
 function main()
 {
-    announce_task "upc_keys install"
+    announce_task "${INSTALL_NAME} install"
 
 
     TASK="Make installation directory"
@@ -90,11 +94,11 @@ function main()
 
     TASK="link"
     announce_task "${TASK}"
-    ln --symbolic --interactive ${INSTALL_DIR}/bin/upc_keys /usr/bin/upc_keys
+    ln --symbolic --interactive ${INSTALL_DIR}/bin/upc_keys /usr/bin/${INSTALL_CMD}
     check_task_result $? "${TASK}"
 
 
-    check_task_result true "upc_keys install"
+    check_task_result true "${INSTALL_NAME} install"
     exit 0
 }
 
