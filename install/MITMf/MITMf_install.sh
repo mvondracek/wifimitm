@@ -98,9 +98,9 @@ function main()
     check_task_result $? "${TASK}"
 
 
-    TASK="Clone the MITMf repository"
+    TASK="Clone the ${INSTALL_NAME} repository fork"
     announce_task "${TASK}"
-    git clone https://github.com/byt3bl33d3r/MITMf
+    git clone https://github.com/mvondracek/MITMf.git
     check_task_result $? "${TASK}"
 
 
