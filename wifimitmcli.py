@@ -188,8 +188,8 @@ def main():
             arp_spoofing.clean()
             wireless_connecter.disconnect()
         else:
-            print('target AP not found', file=sys.stderr)
-            logger.error('target AP not found')
+            print('target AP not found during scan', file=sys.stderr)
+            logger.error('target AP not found during scan')
             return ExitCode.TARGET_AP_NOT_FOUND.value
 
     return ExitCode.EX_OK.value
