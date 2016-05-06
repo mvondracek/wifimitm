@@ -29,6 +29,8 @@ import tempfile
 import time
 from enum import Enum, unique
 
+import pkg_resources
+
 from wifimitm.model import WirelessAccessPoint
 from .common import WirelessCapturer, deauthenticate
 
@@ -91,8 +93,8 @@ class Wpa2Cracker(object):
         if forced_dictionary:
             self.dictionary = forced_dictionary
         else:
-            self.dictionary = open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                   'dictionaries', 'dictionary0.lst'), 'r')
+            self.dictionary = pkg_resources.resource_stream(__package__, 'resources/dictionary.lst')
+        logger.debug("dictionary '{}'".format(str(self.dictionary)))
         self.personalize_dictionary()
 
     def personalize_dictionary(self):

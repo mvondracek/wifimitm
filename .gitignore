@@ -3,8 +3,8 @@
 # Martin Vondracek
 # 2016
 
-wifimitm/dictionaries/*
-!wifimitm/dictionaries/dictionary0.lst
+wifimitm/resources/*
+!wifimitm/resources/dictionary.lst
 wifimitm/networks/
 wifimitm/setup/AP config
 wifimitm/libs
