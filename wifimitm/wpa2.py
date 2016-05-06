@@ -99,14 +99,6 @@ class Wpa2Cracker(object):
         else:
             self.dictionary = pkg_resources.resource_stream(__package__, 'resources/dictionary.lst')
         logger.debug("dictionary '{}'".format(str(self.dictionary)))
-        self.personalize_dictionary()
-
-    def personalize_dictionary(self):
-        """
-        Personalize dictionary by available AP details.
-        """
-        pass
-        # TODO(xvondr20) Implement personalize_dictionary
 
     def start(self):
         self.state = self.__class__.State.new
