@@ -97,6 +97,7 @@ class WirelessConnecter(object):
         self.ap = ap
         logger.info('Connecting to ' + self.ap.essid)
         self.__create_profile()
+        self.interface.set_down()
         self.__start_profile()
         logger.info('Connected to ' + self.ap.essid)
 
