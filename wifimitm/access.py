@@ -11,6 +11,7 @@ import logging
 import os
 import re
 import subprocess
+from typing import Union
 
 from .model import WirelessInterface
 from .wep import WepAttacker
@@ -74,11 +75,12 @@ class WirelessConnecter(object):
     Main class providing establishing a connection to the wireless network.
     """
 
-    def __init__(self, interface):
+    def __init__(self, interface: Union[WirelessInterface, str]):
         """
-        :param interface: wireless network interface for connection
+        :type interface: WirelessInterface | str
+        :param interface: WirelessInterface object or string representing wireless interface name
         """
-        self.interface = interface
+        self.interface = WirelessInterface.get_wireless_interface_obj(interface)  # type: WirelessInterface
         self.ap = None
         self.profile = None
 
@@ -112,7 +114,7 @@ class WirelessConnecter(object):
         Create profile for netctl.
         """
         content = "Description='Automatically generated profile by Machine-in-the-middle'\n"
-        content += 'Interface=' + self.interface + '\n'
+        content += 'Interface=' + self.interface.name + '\n'
         content += 'Connection=wireless\n'
         content += "ESSID='" + self.ap.essid + "'\n"  # TODO(xvondr20) Quoting rules
         content += 'AP=' + self.ap.bssid + '\n'
@@ -127,7 +129,7 @@ class WirelessConnecter(object):
             content += 'Security=wpa\n'
             content += 'Key=' + self.ap.cracked_psk + '\n'  # TODO(xvondr20) Quoting rules
 
-        profile = 'mitm-' + self.interface + '-' + self.ap.essid
+        profile = 'mitm-' + self.interface.name + '-' + self.ap.essid
         profile_path = os.path.join('/etc/netctl', profile)
         if os.path.isfile(profile_path):
             logger.warning('Existing netctl profile ' + profile + ' overwritten.')
