@@ -148,6 +148,14 @@ class WirelessAccessPoint(object):
         shutil.move(source_psk_file_path, self.default_psk_path)
         self.psk_path = self.default_psk_path
 
+    def delete_psk_file(self):
+        """
+        Delete PSK file containing hexadecimal cracked key for network.
+        """
+        if os.path.isfile(self.psk_path):
+            os.remove(self.psk_path)
+            self.psk_path = None
+
     def save_wpa_handshake_cap(self, source_wpa_handshake_cap_path):
         """
         Save capture with WPA handshake.
