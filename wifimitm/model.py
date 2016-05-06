@@ -13,6 +13,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -57,6 +58,9 @@ class WirelessAccessPoint(object):
         self.essid = essid
         self.iv_sum = iv_sum
 
+        self.__dir_path = None
+        self.__temp_dir = None
+
         self.associated_stations = list()
 
         self.arp_cap_path = None
@@ -84,8 +88,18 @@ class WirelessAccessPoint(object):
         It the directory does not exist, the attacker is responsible for its creation using `self.make_dir()`.
         :return: str
         """
-        return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'networks', self.essid)
+        # return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'networks', self.essid)
         # TODO (xvondr20) what is essid is not available?
+        if not self.__dir_path:
+            path = os.path.expanduser(os.path.join('~', '.wifimitm', 'networks', self.essid))
+            if path.startswith('~'):
+                # expansion failed
+                self.__temp_dir = tempfile.TemporaryDirectory(prefix='wifimitm-networks')
+                path = self.__temp_dir.name
+                logger.warning('Call os.path.expanduser failed.')
+            self.__dir_path = path
+            logger.debug("network directory at '{}'".format(self.__dir_path))
+        return self.__dir_path
 
     def make_dir(self):
         """
