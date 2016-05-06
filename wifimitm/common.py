@@ -2,7 +2,7 @@
 """
 Common functionality used in various parts.
 
-Automatization of MitM Attack on WiFi Networks
+Automation of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
@@ -15,7 +15,7 @@ import tempfile
 import time
 from enum import Enum, unique
 
-from model import WirelessAccessPoint, WirelessStation
+from .model import WirelessAccessPoint, WirelessStation
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -133,11 +133,11 @@ class WirelessScanner(object):
     def scan_once(self):
         """
         Scans once for wireless APs and clients.
-        Scanning is done by airodump-ng for 5 seconds. After scanning, airodump-ng is terminated.
+        Scanning is done by airodump-ng for 6 seconds. After scanning, airodump-ng is terminated.
         :return: List containing WirelessAccessPoint objects with associated WirelessStation objects.
         """
-        self.start(write_interval=5)
-        time.sleep(5)
+        self.start(write_interval=2)
+        time.sleep(6)
         result = csv_to_result(self.scanning_csv_path)
         self.stop()
         return result

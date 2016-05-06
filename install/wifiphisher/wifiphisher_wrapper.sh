@@ -1,18 +1,21 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##
-## MITMf wrapper
+## wifiphisher wrapper
 ##
-## Automatization of MitM Attack on WiFi Networks
+## Automation of MitM Attack on WiFi Networks
 ## Bachelor's Thesis UIFS FIT VUT
 ## Martin Vondracek
 ## 2016
 ##
 
+
+INSTALL_NAME="wifiphisher"
+
+
 ## Error exit codes
 EX_UNAVAILABLE=69
 
-PROJECT_DIR=$(pwd)
-LIBS_DIR=${PROJECT_DIR}/libs
+INSTALL_DIR="/opt/${INSTALL_NAME}"
 PROGNAME=$(basename $0)
 
 ## Print error message and exit
@@ -25,12 +28,12 @@ function error_exit
 }
 
 
-source ${LIBS_DIR}/ve_MITMf/bin/activate || error_exit $? "activate virtualenv"
-cd ${LIBS_DIR}/MITMf || error_exit $? "cd to MITMf directory"
+source ${INSTALL_DIR}/ve_${INSTALL_NAME}/bin/activate || error_exit $? "activate virtualenv"
+cd ${INSTALL_DIR}/${INSTALL_NAME} || error_exit $? "cd to ${INSTALL_NAME} directory"
 
-python mitmf.py $*
-MITMF_EXITCODE=$?
+python bin/wifiphisher $*
+EXITCODE=$?
 
 deactivate || error_exit $? "deactivate virtualenv"
 
-exit ${MITMF_EXITCODE}
+exit ${EXITCODE}

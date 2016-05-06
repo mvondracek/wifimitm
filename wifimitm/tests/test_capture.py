@@ -2,7 +2,7 @@
 """
 Unit tests for capture module
 
-Automatization of MitM Attack on WiFi Networks
+Automation of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
@@ -11,9 +11,9 @@ import time as _time
 import typing as _typing
 import unittest as _unittest
 
-from updatableProcess import UpdatableProcess
-from capture import Dumpcap
-from model import WirelessInterface as _WirelessInterface
+from wifimitm.updatableProcess import UpdatableProcess
+from wifimitm.capture import Dumpcap
+from wifimitm.model import WirelessInterface as _WirelessInterface
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'

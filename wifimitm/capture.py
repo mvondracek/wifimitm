@@ -2,7 +2,7 @@
 """
 Capturing network traffic
 
-Automatization of MitM Attack on WiFi Networks
+Automation of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
@@ -17,10 +17,10 @@ Martin Vondracek
 import logging
 import re
 from enum import Enum, unique
-from typing import Union, Dict
+from typing import Union, Dict, Optional, BinaryIO
 
-from updatableProcess import UpdatableProcess
-from model import WirelessInterface
+from .updatableProcess import UpdatableProcess
+from .model import WirelessInterface
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -68,8 +68,10 @@ class Dumpcap(UpdatableProcess):
         TERMINATED = 100
         """Process have been terminated. By self.stop() call, on its own or by someone else."""
 
-    def __init__(self, interface: Union[WirelessInterface, str]):
+    def __init__(self, interface: Union[WirelessInterface, str], capture_file: Optional[BinaryIO] = None):
         """
+        :type capture_file: Optional[BinaryIO]
+        :param capture_file: file for writing packet capture
         :type interface: WirelessInterface | str
         :param interface: WirelessInterface object or string representing wireless interface name
         """
@@ -78,11 +80,21 @@ class Dumpcap(UpdatableProcess):
         self.stats = self.__initial_stats()
 
         self.interface = WirelessInterface.get_wireless_interface_obj(interface)
-        self.cap_file_path = None
+        self.capture_file = capture_file
+        # If `capture_file` was None, dumpcap will create capture file in /tmp. `self.tmp_capture_file_path` is set
+        # during `self.update`.
+        self.tmp_capture_file_path = None
 
         cmd = ['dumpcap',
                '-i', self.interface.name]
-        super().__init__(cmd)
+        stdout = None
+        if self.capture_file:
+            # If `capture_file` was provided, set dumpcap to write raw packet data to stdout...
+            cmd.append('-w')
+            cmd.append('-')
+            # ... and redirect dumpcap's stdout to provided `capture_file`.
+            stdout = self.capture_file
+        super().__init__(cmd, stdout=stdout)
 
     def __str__(self):
         return '<{!s} state={!s}, flags={!s}, stats={!s}>'.format(
@@ -123,7 +135,7 @@ class Dumpcap(UpdatableProcess):
         self.poll()
 
         # check every added line in stderr
-        if not self.stderr_r.closed:
+        if self.stderr_r and not self.stderr_r.closed:
             for line in self.stderr_r:
                 if line == '\n':
                     continue
@@ -134,9 +146,13 @@ class Dumpcap(UpdatableProcess):
                         continue
                     m = self.CRE_CAP_FILE_PATH.match(line)
                     if m:
-                        self.cap_file_path = m.group('cap_file_path')
-                        logger.debug("Saving capture to '{}'.".format(self.cap_file_path))
-                        print("Saving capture to '{}'.".format(self.cap_file_path))
+                        detected_cap_file_path = m.group('cap_file_path')
+                        if self.capture_file:
+                            assert detected_cap_file_path == '-'
+                            detected_cap_file_path = self.capture_file  # for the following log
+                        else:
+                            self.tmp_capture_file_path = detected_cap_file_path
+                        logger.debug("Saving capture to '{}'.".format(detected_cap_file_path))
                         self.state = self.State.AWAITING_PACKETS
                         continue
                     assert False, 'Unexpected stderr of dumpcap.' + line + str(self)
@@ -172,9 +188,9 @@ class Dumpcap(UpdatableProcess):
 
         # check stdout
         # TODO (xvondr20) Does 'dumpcap' ever print anything to stdout?
-        if not self.stdout_r.closed:
-            line = self.stdout_r.read()
-            assert line == '', 'Unexpected stdout of dumpcap.' + line + str(self)
+        if self.stdout_r and not self.stdout_r.closed:
+            for line in self.stdout_r:  # type: str
+                logger.warning('Unexpected stdout of dumpcap.' + line + str(self))
 
         # Change state if process was not running in the time of poll() call in the beginning of this method.
         # NOTE: Process' poll() needs to be called in the beginning of this method and returncode checked in the end

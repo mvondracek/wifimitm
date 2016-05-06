@@ -2,7 +2,7 @@
 """
 Requirements
 
-Automatization of MitM Attack on WiFi Networks
+Automation of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
@@ -10,7 +10,6 @@ Martin Vondracek
 import logging
 import os
 import shutil
-import sys
 from abc import ABC, abstractmethod
 from typing import List
 
@@ -40,6 +39,15 @@ class Requirement(ABC):
         Message that requirement is not ok.
         :rtype: str
         """
+
+
+class RequirementError(Exception):
+    def __init__(self, requirement: Requirement):
+        """
+        :type requirement: Requirement
+        """
+        super().__init__()
+        self.requirement = requirement
 
 
 class CommandRequirement(Requirement):
@@ -126,6 +134,9 @@ class Requirements(object):
         CommandRequirement('aireplay-ng'),
         CommandRequirement('netctl'),
         CommandRequirement('dumpcap'),
+        CommandRequirement('mitmf'),
+        CommandRequirement('upc_keys'),
+        CommandRequirement('wifiphisher'),
         UidRequirement(UidRequirement.UID_ROOT)
     ]  # type: List[Requirement]
 
@@ -133,14 +144,13 @@ class Requirements(object):
     def check_all(cls) -> bool:
         """
         Check all requirements whether they are ok.
-        :rtype: bool
+        Raises:
+            RequirementError If checked requirement is not ok, Requirement object is available as a `requirement`
+                attribute of the raised exception.
         """
-        result = True
         for r in cls.REQUIREMENTS:
             if not r.check():
-                logger.critical('[FAIL] requirement check {!s}'.format(r))
-                print(r.msg, file=sys.stderr)
-                result = False
+                logger.critical('requirement check failed {!s}'.format(r))
+                raise RequirementError(r)
             else:
-                logger.debug('[ OK ] requirement check {!s}'.format(r))
-        return result
+                logger.debug('requirement check OK {!s}'.format(r))

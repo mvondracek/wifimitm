@@ -2,7 +2,7 @@
 """
 Model
 
-Automatization of MitM Attack on WiFi Networks
+Automation of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
@@ -13,6 +13,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -22,10 +23,7 @@ logger = logging.getLogger(__name__)
 
 class WirelessStation(object):
     def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
-        return 'WirelessStation(' + ', '.join([
-            self.mac_address,
-            self.power
-        ]) + ')'
+        return '<WirelessStation mac_address={}, power={}>'.format(self.mac_address, self.power)
 
     def __init__(self, mac_address, power):
         self.mac_address = mac_address
@@ -36,38 +34,32 @@ class WirelessStation(object):
 
 class WirelessAccessPoint(object):
     def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
-        s = 'WirelessAccessPoint(' + ', '.join([
-            self.essid,
-            self.bssid
-        ])
+        s = '<WirelessAccessPoint essid={}, bssid={}'.format(self.essid, self.bssid)
 
         if self.is_cracked():
             if 'WEP' in self.encryption:
                 s += ', PSK(0x' + self.cracked_psk + ', "' + bytes.fromhex(self.cracked_psk).decode('ascii') + '"), '
             else:
-                s += ', PSK("' + self.cracked_psk + '"), '
+                s += ', PSK("' + self.cracked_psk + '")'
 
-        s += ', '.join([
-            self.power,
-            self.channel,
-            self.encryption,
-            self.cipher,
-            self.authentication,
-            str(self.wps),
-            self.iv_sum
-        ]) + ')'
+        s += ', power={}, channel={}, encryption={}, cipher={}, authentication={}, wps={}, iv_sum={}>'.format(
+            self.power, self.channel, self.encryption, self.cipher, self.authentication, self.wps, self.iv_sum
+        )
         return s
 
-    def __init__(self, bssid, power, channel, encryption, cipher, authentication, wps, essid, iv_sum):
-        self.bssid = bssid
-        self.power = power
-        self.channel = channel
-        self.encryption = encryption
-        self.cipher = cipher
-        self.authentication = authentication
-        self.wps = wps
-        self.essid = essid
+    def __init__(self, bssid, power, channel, encryption, cipher, authentication, wps, essid: str, iv_sum):
+        self.bssid = bssid  # type: str
+        self.power = power  # type: str
+        self.channel = channel  # type: str
+        self.encryption = encryption  # type: str
+        self.cipher = cipher  # type: str
+        self.authentication = authentication  # type: str
+        self.wps = wps  # type: str
+        self.essid = essid  # type: str
         self.iv_sum = iv_sum
+
+        self.__dir_path = None
+        self.__temp_dir = None
 
         self.associated_stations = list()
 
@@ -96,7 +88,17 @@ class WirelessAccessPoint(object):
         It the directory does not exist, the attacker is responsible for its creation using `self.make_dir()`.
         :return: str
         """
-        return os.path.join(os.getcwd(), 'networks', self.essid)  # TODO (xvondr20) what is essid is not available?
+        # return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'networks', self.essid)
+        # TODO (xvondr20) what is essid is not available?
+        if not self.__dir_path:
+            path = os.path.expanduser(os.path.join('~', '.wifimitm', 'networks', self.essid))
+            if path.startswith('~'):
+                # expansion failed
+                self.__temp_dir = tempfile.TemporaryDirectory(prefix='wifimitm-networks')
+                path = self.__temp_dir.name
+                logger.warning('Call os.path.expanduser failed.')
+            self.__dir_path = path
+        return self.__dir_path
 
     def make_dir(self):
         """
@@ -144,6 +146,14 @@ class WirelessAccessPoint(object):
             raise FileNotFoundError
         shutil.move(source_psk_file_path, self.default_psk_path)
         self.psk_path = self.default_psk_path
+
+    def delete_psk_file(self):
+        """
+        Delete PSK file containing hexadecimal cracked key for network.
+        """
+        if os.path.isfile(self.psk_path):
+            os.remove(self.psk_path)
+            self.psk_path = None
 
     def save_wpa_handshake_cap(self, source_wpa_handshake_cap_path):
         """
@@ -206,16 +216,17 @@ def interface_exists(name: str) -> bool:
 
 class WirelessInterface(object):
     def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
-        s = 'WirelessInterface(' + ', '.join([
-            str(self.name),
-            str(self.mac_address),
-            str(self.channel),
-            str(self.driver),
-            str(self.chipset)
-        ])
+        s = '<WirelessInterface name={}, mac_address={}, channel={}, driver={}, chipset={}'\
+            .format(
+                self.name,
+                self.mac_address,
+                self.channel,
+                self.driver,
+                self.chipset
+            )
         if self.monitor_mode:
             s += ', monitor'
-        s += ')'
+        s += '>'
         return s
 
     def __init__(self, name, driver=None, chipset=None):
@@ -365,3 +376,25 @@ class WirelessInterface(object):
                 self.monitor_mode = False
                 self.name_monitor = None
                 break
+
+    def set_up(self):
+        """
+        Raises:
+            CalledProcessError if process' returncode is non-zero.
+        """
+        cmd = ['ip', 'link', 'set', self.name, 'up']
+        process = subprocess.run(cmd,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 universal_newlines=True)
+        process.check_returncode()
+
+    def set_down(self):
+        """
+        Raises:
+            CalledProcessError if process' returncode is non-zero.
+        """
+        cmd = ['ip', 'link', 'set', self.name, 'down']
+        process = subprocess.run(cmd,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 universal_newlines=True)
+        process.check_returncode()

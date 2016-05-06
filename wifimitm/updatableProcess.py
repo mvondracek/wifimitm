@@ -2,7 +2,7 @@
 """
 UpdatableProcess Abstract Base Class
 
-Automatization of MitM Attack on WiFi Networks
+Automation of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
@@ -54,18 +54,21 @@ class UpdatableProcess(ABC, subprocess.Popen):
     _popen_initialized = False  # important for destructor, see `self.__del__()`
     _finalizer_initialized = False  # important for cleanup called from destructor, see `self.__del__()`
 
-    def __init__(self, args):
+    def __init__(self, args, stdout=None):
         self.cleaned = False
         # temp files (write, read) for stdout and stderr
         self.tmp_dir = tempfile.TemporaryDirectory(prefix=type(self).__name__)
 
-        self.stdout_w = open(os.path.join(self.tmp_dir.name, 'stdout.txt'), mode='w')
-        self.stdout_r = open(os.path.join(self.tmp_dir.name, 'stdout.txt'), mode='r')
+        if stdout:
+            self.stdout_w = stdout
+        else:
+            self.stdout_w = open(os.path.join(self.tmp_dir.name, 'stdout.txt'), mode='wt', buffering=1)
+            self.stdout_r = open(os.path.join(self.tmp_dir.name, 'stdout.txt'), mode='rt', buffering=1)
 
-        self.stderr_w = open(os.path.join(self.tmp_dir.name, 'stderr.txt'), mode='w')
-        self.stderr_r = open(os.path.join(self.tmp_dir.name, 'stderr.txt'), mode='r')
+        self.stderr_w = open(os.path.join(self.tmp_dir.name, 'stderr.txt'), mode='wt', buffering=1)
+        self.stderr_r = open(os.path.join(self.tmp_dir.name, 'stderr.txt'), mode='rt', buffering=1)
 
-        super().__init__(args=args, stdout=self.stdout_w, stderr=self.stderr_w, universal_newlines=True)
+        super().__init__(args=args, stdout=self.stdout_w, stderr=self.stderr_w, universal_newlines=True, bufsize=1)
         self._popen_initialized = True
 
         self._finalizer = weakref.finalize(
@@ -153,6 +156,7 @@ class UpdatableProcess(ABC, subprocess.Popen):
         # "...on exit, standard file descriptors are closed, and the process is waited for."
         # `subprocess — Subprocess management <https://docs.python.org/3/library/subprocess.html#subprocess.Popen>`_
         super().__exit__(exc_type, exc_val, exc_tb)
+        self.update()
         # close files used for feedback
         self.cleanup()
 

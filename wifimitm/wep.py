@@ -2,7 +2,7 @@
 """
 WEP cracking
 
-Automatization of MitM Attack on WiFi Networks
+Automation of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
@@ -36,7 +36,7 @@ import tempfile
 import time
 from enum import Enum, unique
 
-from common import WirelessCapturer, deauthenticate
+from .common import WirelessCapturer, deauthenticate
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'

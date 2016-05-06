@@ -2,7 +2,7 @@
 """
 Unit tests for UpdatableProcess class
 
-Automatization of MitM Attack on WiFi Networks
+Automation of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
@@ -10,7 +10,7 @@ Martin Vondracek
 import typing as _typing
 import unittest as _unittest
 
-from updatableProcess import UpdatableProcess
+from wifimitm.updatableProcess import UpdatableProcess
 
 
 class TestUpdatableProcess(_unittest.TestCase):
@@ -81,10 +81,16 @@ class TestUpdatableProcess(_unittest.TestCase):
         self.assertTrue(self.process.cleaned, 'Process did not clean on __exit__.')
 
     def test__del__1(self):
-        self.process = self.UpdatableProcessSubclass(self.continuously_running_cmd)
-        self.process = 'replacement'
+        with self.assertWarnsRegex(ResourceWarning,
+                                   'Process {} was not stopped correctly. Stopping it by destructor, which is not'
+                                   ' always safe!'.format(self.UpdatableProcessSubclass.__name__)):
+            self.process = self.UpdatableProcessSubclass(self.continuously_running_cmd)
+            self.process = 'replacement'
 
     def test__del__2(self):
-        self.process = self.UpdatableProcessSubclass(self.continuously_running_cmd)
-        del self.process
-        self.process = None
+        with self.assertWarnsRegex(ResourceWarning,
+                                   'Process {} was not stopped correctly. Stopping it by destructor, which is not'
+                                   ' always safe!'.format(self.UpdatableProcessSubclass.__name__)):
+            self.process = self.UpdatableProcessSubclass(self.continuously_running_cmd)
+            del self.process
+            self.process = None

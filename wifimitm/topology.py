@@ -2,24 +2,18 @@
 """
 Tampering with network topology
 
-Automatization of MitM Attack on WiFi Networks
+Automation of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT
 Martin Vondracek
 2016
-
-#Implementation notes
-- MITMf requires python2.7 and virtualenv, therefore it's called using MITMf_wrapper.sh which is able to pass
-  the script arguments and return exitcode of MITMf.
-
 """
 import logging
-import os
 import subprocess
 import tempfile
 import time
 from enum import Enum, unique
 
-from model import WirelessInterface
+from .model import WirelessInterface
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -73,7 +67,7 @@ class ArpSpoofing(object):
         self.process_stderr_w = tempfile.NamedTemporaryFile(prefix='ArpSpoofing-stderr')
         self.process_stderr_r = open(self.process_stderr_w.name, 'r')
 
-        cmd = [os.path.join(os.getcwd(), 'MITMf_wrapper.sh'),
+        cmd = ['mitmf',
                '-i', self.interface.name,
                '--spoof', '--arp',
                '--gateway', self.interface.gateway]
@@ -81,7 +75,7 @@ class ArpSpoofing(object):
                                         stdout=self.process_stdout_w, stderr=self.process_stderr_w,
                                         universal_newlines=True)
         logger.debug('ArpSpoofing started; stdout @ ' + self.process_stdout_w.name +
-                      ', stderr @ ' + self.process_stderr_w.name)
+                     ', stderr @ ' + self.process_stderr_w.name)
 
     def update_state(self):
         """
@@ -94,16 +88,16 @@ class ArpSpoofing(object):
 
         # check every added line in stdout
         for line in self.process_stdout_r:
-            if not self.spoof_started_found and line == '[MITMf] start successful\n':
+            if not self.spoof_started_found and line == '|_ SMB server online\n':
                 self.spoof_started_found = True
             elif self.spoof_started_found and line != '\n':
-                print('ArpSpoofing stdout:' + line, end='')
+                print('MITMf 1> ' + line, end='')
 
         # check every added line in stdout
         for line in self.process_stderr_r:
             if ' * Running on http://127.0.0.1:9999/ (Press CTRL+C to quit)\n' == line:
                 continue
-            print('ArpSpoofing stderr:' + line, end='')
+            print('MITMf 2> ' + line, end='')
 
     def stop(self):
         """
