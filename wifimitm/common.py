@@ -133,11 +133,11 @@ class WirelessScanner(object):
     def scan_once(self):
         """
         Scans once for wireless APs and clients.
-        Scanning is done by airodump-ng for 5 seconds. After scanning, airodump-ng is terminated.
+        Scanning is done by airodump-ng for 6 seconds. After scanning, airodump-ng is terminated.
         :return: List containing WirelessAccessPoint objects with associated WirelessStation objects.
         """
-        self.start(write_interval=5)
-        time.sleep(5)
+        self.start(write_interval=2)
+        time.sleep(6)
         result = csv_to_result(self.scanning_csv_path)
         self.stop()
         return result
