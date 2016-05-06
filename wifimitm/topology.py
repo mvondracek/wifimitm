@@ -8,7 +8,6 @@ Martin Vondracek
 2016
 """
 import logging
-import os
 import subprocess
 import tempfile
 import time
@@ -76,7 +75,7 @@ class ArpSpoofing(object):
                                         stdout=self.process_stdout_w, stderr=self.process_stderr_w,
                                         universal_newlines=True)
         logger.debug('ArpSpoofing started; stdout @ ' + self.process_stdout_w.name +
-                      ', stderr @ ' + self.process_stderr_w.name)
+                     ', stderr @ ' + self.process_stderr_w.name)
 
     def update_state(self):
         """
