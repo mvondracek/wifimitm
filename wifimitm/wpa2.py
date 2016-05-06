@@ -269,3 +269,30 @@ class Wpa2Attacker(object):
             logger.info('Cracked ' + str(self.ap))
             cracker.stop()
             cracker.clean()
+
+
+def verify_psk(ap: WirelessAccessPoint, psk: str):
+    dictionary_w = tempfile.NamedTemporaryFile(mode='w', prefix='dictionary')
+    dictionary_w.write(psk)
+    dictionary_w.flush()
+    dictionary_r = open(dictionary_w.name, 'r')
+
+    cracker = Wpa2Cracker(ap=ap, forced_dictionary=dictionary_r)
+    result = False
+    try:
+        cracker.start()
+        while not ap.is_cracked():
+            cracker.update_state()
+            logger.debug('Wpa2Cracker: ' + str(cracker.state))
+            time.sleep(1)
+    except PassphraseNotInDictionaryError:
+        result = False
+    else:
+        result = True
+        logger.info('Verified ' + str(ap))
+    finally:
+        cracker.stop()
+        cracker.clean()
+        dictionary_r.close()
+        dictionary_w.close()
+    return result
