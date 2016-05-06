@@ -62,13 +62,13 @@ class UpdatableProcess(ABC, subprocess.Popen):
         if stdout:
             self.stdout_w = stdout
         else:
-            self.stdout_w = open(os.path.join(self.tmp_dir.name, 'stdout.txt'), mode='w')
-            self.stdout_r = open(os.path.join(self.tmp_dir.name, 'stdout.txt'), mode='r')
+            self.stdout_w = open(os.path.join(self.tmp_dir.name, 'stdout.txt'), mode='wt', buffering=1)
+            self.stdout_r = open(os.path.join(self.tmp_dir.name, 'stdout.txt'), mode='rt', buffering=1)
 
-        self.stderr_w = open(os.path.join(self.tmp_dir.name, 'stderr.txt'), mode='w')
-        self.stderr_r = open(os.path.join(self.tmp_dir.name, 'stderr.txt'), mode='r')
+        self.stderr_w = open(os.path.join(self.tmp_dir.name, 'stderr.txt'), mode='wt', buffering=1)
+        self.stderr_r = open(os.path.join(self.tmp_dir.name, 'stderr.txt'), mode='rt', buffering=1)
 
-        super().__init__(args=args, stdout=self.stdout_w, stderr=self.stderr_w, universal_newlines=True)
+        super().__init__(args=args, stdout=self.stdout_w, stderr=self.stderr_w, universal_newlines=True, bufsize=1)
         self._popen_initialized = True
 
         self._finalizer = weakref.finalize(
