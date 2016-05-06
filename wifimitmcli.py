@@ -125,8 +125,8 @@ def main():
             try:
                 print('unlocking')
                 wireless_unlocker.start()
-            except PassphraseNotInDictionaryError:
-                print('Passphrase not in dictionary.')
+            except PassphraseNotInAnyDictionaryError:
+                print('Passphrase not in any dictionary.')
             finally:
                 interface.stop_monitor_mode()
 
