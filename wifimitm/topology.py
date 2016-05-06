@@ -91,13 +91,13 @@ class ArpSpoofing(object):
             if not self.spoof_started_found and line == '|_ SMB server online\n':
                 self.spoof_started_found = True
             elif self.spoof_started_found and line != '\n':
-                print('ArpSpoofing stdout:' + line, end='')
+                print('MITMf 1> ' + line, end='')
 
         # check every added line in stdout
         for line in self.process_stderr_r:
             if ' * Running on http://127.0.0.1:9999/ (Press CTRL+C to quit)\n' == line:
                 continue
-            print('ArpSpoofing stderr:' + line, end='')
+            print('MITMf 2> ' + line, end='')
 
     def stop(self):
         """
