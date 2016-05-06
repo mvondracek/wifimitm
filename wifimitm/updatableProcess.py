@@ -156,6 +156,7 @@ class UpdatableProcess(ABC, subprocess.Popen):
         # "...on exit, standard file descriptors are closed, and the process is waited for."
         # `subprocess — Subprocess management <https://docs.python.org/3/library/subprocess.html#subprocess.Popen>`_
         super().__exit__(exc_type, exc_val, exc_tb)
+        self.update()
         # close files used for feedback
         self.cleanup()
 
