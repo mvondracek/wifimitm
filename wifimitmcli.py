@@ -23,12 +23,12 @@ import setuptools_scm
 from wifimitm.access import WirelessUnlocker, WirelessConnecter, list_wifi_interfaces
 from wifimitm.capture import Dumpcap
 from wifimitm.common import WirelessScanner
+from wifimitm.impersonation import Wifiphisher
 from wifimitm.model import WirelessAccessPoint
 from wifimitm.model import WirelessInterface
 from wifimitm.requirements import Requirements, RequirementError, UidRequirement
 from wifimitm.topology import ArpSpoofing
-from wifimitm.wpa2 import PassphraseNotInDictionaryError, Wpa2Cracker, verify_psk
-from wifimitm.impersonation import Wifiphisher
+from wifimitm.wpa2 import verify_psk, PassphraseNotInAnyDictionaryError
 
 __version__ = setuptools_scm.get_version()
 __author__ = 'Martin Vondracek'
