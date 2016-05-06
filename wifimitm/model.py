@@ -98,7 +98,6 @@ class WirelessAccessPoint(object):
                 path = self.__temp_dir.name
                 logger.warning('Call os.path.expanduser failed.')
             self.__dir_path = path
-            logger.debug("network directory at '{}'".format(self.__dir_path))
         return self.__dir_path
 
     def make_dir(self):
