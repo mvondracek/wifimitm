@@ -47,15 +47,15 @@ class WirelessAccessPoint(object):
         )
         return s
 
-    def __init__(self, bssid, power, channel, encryption, cipher, authentication, wps, essid, iv_sum):
-        self.bssid = bssid
-        self.power = power
-        self.channel = channel
-        self.encryption = encryption
-        self.cipher = cipher
-        self.authentication = authentication
-        self.wps = wps
-        self.essid = essid
+    def __init__(self, bssid, power, channel, encryption, cipher, authentication, wps, essid: str, iv_sum):
+        self.bssid = bssid  # type: str
+        self.power = power  # type: str
+        self.channel = channel  # type: str
+        self.encryption = encryption  # type: str
+        self.cipher = cipher  # type: str
+        self.authentication = authentication  # type: str
+        self.wps = wps  # type: str
+        self.essid = essid  # type: str
         self.iv_sum = iv_sum
 
         self.__dir_path = None
