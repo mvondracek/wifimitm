@@ -127,8 +127,8 @@ class Wpa2Cracker(object):
         # NOTE: Aircrack-ng does not flush when stdout is redirected to file and -q is set.
         self.state = self.__class__.State.ok
         logger.debug('Wpa2Cracker started; cwd=' + self.tmp_dir.name + ', ' +
-                      'stdout @ ' + self.process_stdout_w.name +
-                      ', stderr @ ' + self.process_stderr_w.name)
+                     'stdout @ ' + self.process_stdout_w.name +
+                     ', stderr @ ' + self.process_stderr_w.name)
 
     def update_state(self):
         """
