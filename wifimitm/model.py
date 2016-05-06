@@ -377,3 +377,25 @@ class WirelessInterface(object):
                 self.monitor_mode = False
                 self.name_monitor = None
                 break
+
+    def set_up(self):
+        """
+        Raises:
+            CalledProcessError if process' returncode is non-zero.
+        """
+        cmd = ['ip', 'link', 'set', self.name, 'up']
+        process = subprocess.run(cmd,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 universal_newlines=True)
+        process.check_returncode()
+
+    def set_down(self):
+        """
+        Raises:
+            CalledProcessError if process' returncode is non-zero.
+        """
+        cmd = ['ip', 'link', 'set', self.name, 'down']
+        process = subprocess.run(cmd,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 universal_newlines=True)
+        process.check_returncode()
