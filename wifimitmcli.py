@@ -94,6 +94,7 @@ def main():
             exitcode = ExitCode.EX_UNAVAILABLE
         print(e.requirement.msg, file=sys.stderr)
         print('Requirements check failed.')
+        config.cleanup()
         return exitcode.value
 
     print(config.PROGRAM_DESCRIPTION)
@@ -145,16 +146,20 @@ def main():
 
                             if not verify_psk(target, wifiphisher.password):
                                 print('Caught password is not correct.', file=sys.stderr)
+                                config.cleanup()
                                 return ExitCode.PHISHING_INCORRECT_PSK.value
                     except KeyboardInterrupt:
                         print('stopping')
+                        config.cleanup()
                         return ExitCode.KEYBOARD_INTERRUPT.value
                     except Wifiphisher.UnexpectedTerminationError:
                         print('Wifiphisher unexpectedly terminated.', file=sys.stderr)
+                        config.cleanup()
                         return ExitCode.SUBPROCESS_ERROR.value
                 else:
                     print('Phishing is not enabled and targeted AP is not cracked after previous attacks.\n'
                           'Attack unsuccessful.', file=sys.stderr)
+                    config.cleanup()
                     return ExitCode.PASSPHRASE_NOT_IN_DICTIONARY.value
 
             print('unlocked')
@@ -190,8 +195,10 @@ def main():
         else:
             print('target AP not found during scan', file=sys.stderr)
             logger.error('target AP not found during scan')
+            config.cleanup()
             return ExitCode.TARGET_AP_NOT_FOUND.value
 
+    config.cleanup()
     return ExitCode.EX_OK.value
 
 
@@ -316,6 +323,9 @@ class Config:
 
         self.essid = parsed_args.essid
         self.interface = parsed_args.interface
+
+    def cleanup(self):
+        self.capture_file.close()
 
 
 if __name__ == '__main__':
