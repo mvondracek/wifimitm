@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 ##
-## Install all requirements
+## Install requirements
 ##
 ## Automation of MitM Attack on WiFi Networks
 ## Bachelor's Thesis UIFS FIT VUT
 ## Martin Vondracek
 ## 2016
 ##
+
+
+INSTALL_NAME="requirements"
 
 
 ## Error exit codes
@@ -44,7 +47,7 @@ function announce_task()
 ##   $1 signal number
 function stop()
 {
-    echo -e "[\e[31mFAIL\e[0m] ${PROGNAME}: MITMf install" >&2
+    echo -e "[\e[31mFAIL\e[0m] ${PROGNAME}: ${INSTALL_NAME} install" >&2
     exit $(expr 128 + ${1?})
 }
 
@@ -56,28 +59,28 @@ trap "stop 15" SIGTERM
 
 function main()
 {
-    announce_task "install"
+    announce_task "${INSTALL_NAME} install"
 
 
     TASK="MITMf"
     announce_task "${TASK}"
-    ${SCRIPT_DIR}/install/MITMf/MITMf_install.sh
+    ${SCRIPT_DIR}/MITMf/MITMf_install.sh
     check_task_result $? "${TASK}"
 
 
     TASK="upc_keys"
     announce_task "${TASK}"
-    ${SCRIPT_DIR}/install/upc_keys/upc_keys_install.sh
+    ${SCRIPT_DIR}/upc_keys/upc_keys_install.sh
     check_task_result $? "${TASK}"
 
 
     TASK="wifiphisher"
     announce_task "${TASK}"
-    ${SCRIPT_DIR}/install/wifiphisher/wifiphisher_install.sh
+    ${SCRIPT_DIR}/wifiphisher/wifiphisher_install.sh
     check_task_result $? "${TASK}"
 
 
-    check_task_result true "install"
+    check_task_result true "${INSTALL_NAME} install"
     exit 0
 }
 
