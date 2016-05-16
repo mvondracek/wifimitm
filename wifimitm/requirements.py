@@ -129,6 +129,7 @@ class Requirements(object):
     """
 
     REQUIREMENTS = [
+        CommandRequirement('aircrack-ng'),
         CommandRequirement('airmon-ng'),
         CommandRequirement('airodump-ng'),
         CommandRequirement('aireplay-ng'),
