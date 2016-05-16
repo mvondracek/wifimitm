@@ -139,6 +139,8 @@ class Requirements(object):
         CommandRequirement('mitmf'),
         CommandRequirement('upc_keys'),
         CommandRequirement('wifiphisher'),
+        CommandRequirement('grep'),
+        CommandRequirement('sed'),
         UidRequirement(UidRequirement.UID_ROOT)
     ]  # type: List[Requirement]
 
