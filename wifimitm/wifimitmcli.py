@@ -43,31 +43,31 @@ class ExitCode(Enum):
     Some are inspired by sysexits.h.
     """
     EX_OK = 0
-    """successful termination"""
+    """Program terminated successfully."""
 
     ARGUMENTS = 2
-    """incorrect or missing program arguments"""
+    """Incorrect or missing arguments provided."""
 
     EX_UNAVAILABLE = 69
-    """required program or file does not exist"""
+    """Required program or file does not exist."""
 
     EX_NOPERM = 77
-    """permission denied"""
+    """Permission denied."""
 
     TARGET_AP_NOT_FOUND = 79
-    """target AP was not found during scan"""
+    """Target AP was not found during scan."""
 
-    PASSPHRASE_NOT_IN_DICTIONARY = 80
-    """WPA/WPA2 passphrase was not found in available dictionary/dictionaries"""
+    NOT_IN_ANY_DICTIONARY = 80
+    """WPA/WPA2 passphrase was not found in any available dictionary."""
 
     PHISHING_INCORRECT_PSK = 81
-    """WPA/WPA2 passphrase obtained from phishing attack is incorrect"""
+    """WPA/WPA2 passphrase obtained from phishing attack is incorrect."""
 
     SUBPROCESS_ERROR = 82
-    """Failure in subprocess."""
+    """Failure in subprocess occured."""
 
     KEYBOARD_INTERRUPT = 130
-    """received KeyboardInterrupt, SIGINT"""
+    """Program received SIGINT."""
 
 
 def main():
@@ -159,7 +159,7 @@ def main():
                     print('Phishing is not enabled and targeted AP is not cracked after previous attacks.\n'
                           'Attack unsuccessful.', file=sys.stderr)
                     config.cleanup()
-                    return ExitCode.PASSPHRASE_NOT_IN_DICTIONARY.value
+                    return ExitCode.NOT_IN_ANY_DICTIONARY.value
 
             print('unlocked')
 
