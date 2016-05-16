@@ -8,18 +8,20 @@
 ##
 ## Usage:
 ##   make all
-##     make requirements
-##     make install
-##     make man
+##     Install requirements, the package, the tool and the manual page.
 ##
 ##   make requirements
-##     install requirements
+##     Install requirements.
 ##
 ##   make man
-##     install the wifimitmcli(1) manual page
+##     Install a manual page of wifimitmcli.
 ##
 ##   make install
-##     install the wifimitm package and the wifimitmcli tool
+##     Install the wifimitm package and the wifimitmcli tool.
+
+
+SHELL = /bin/sh
+
 
 .PHONY: all requirements install man
 
