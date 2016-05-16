@@ -23,8 +23,7 @@ can be used for automated penetration testing and for forensic investigation.
 ## Installation
 
 ```bash
-sh ./install_all.sh
-python setup.py install
+make
 ```
 
 The implemented automated tool depends on several other tools, which are being controlled.
@@ -33,7 +32,7 @@ on a user’s system. The *wifimitm* package itself can be automatically install
 the package’s `setup.py`. After the installation, the implemented automated tool can
 be started using its CLI named `wifimitmcli`. The rest of software dependencies can be
 satisfied by installation of required tools. For convenient setup of the implemented tool,
-several installation scripts and wrappers have been developed.
+a `Makefile` and several installation scripts and wrappers have been developed.
 
 *MITMf* has a number of dependencies, therefore it is highly recommended to use *MITMf*
 inside a virtual environment as stated in its installation guide[^MITMf_installation] .
@@ -58,8 +57,17 @@ Tool *upc_keys* is implemented in the C language and therefore it is compiled du
 installation. Compiled *upc_keys* and the executable wrappers for *MITMf* and *wifiphisher*,
 which are described above, are linked from the `/usr/bin/` directory after the installation.
 The required tools are installed by their installation scripts to the `/opt/` directory.
-Installation of all the requirements can be started by `install_all.sh` script.
+Installation of all the requirements can be started by `requirements_install.sh` script
+or `Makefile`. A usage of implemented `Makefile`, which can be used for convenient installation,
+is shown in table below.
 
+|Command            |Description                                                     |
+|-------------------|----------------------------------------------------------------|
+|`make requirements`|Install requirements.                                           |
+|`make install`     |Install the *wifimitm* package and the *wifimitmcli* tool.      |
+|`make man`         |Install a manual page of *wifimitmcli*.                         |
+|`make`, `make all` |Install requirements, the package, the tool and the manual page.|
+A usage of *Makefile*
 
 ## Usage
 After the installation, the CLI can be started via wifimitmcli. During *wifimitmcli’s* run,
@@ -78,20 +86,20 @@ wifimitmcli [-h] [-v] [-ll <level> ] [-p] [-cf FILE ] <essid> <interface>
 
 |Argument                                |Description                                                                     |
 |----------------------------------------|--------------------------------------------------------------------------------|
-|`-h`, `–help`                           |Show help message and exit.                                                     |
-|`-v`, `–version`                        |Show program’s version number and exit.                                         |
-|`-ll <level>`, `-–logging-level <level>`|Select logging level (choices: `disabled`, `critical`, `error`, `warning`, `info`, `debug`).|
-|`-p`, `–phishing`                       |Enable phishing attack if dictionary attack fails.                              |
-|`-cf FILE`, `-–capture-file FILE`       |Capture network traffic to provided file.                                       |
-|`<essid>`                               |Attack network with provided ESSID.                                             |
+|`-h`, `--help`                          |Show help message and exit.                                                     |
+|`-v`, `--version`                       |Show program’s version number and exit.                                         |
+|`-ll <level>`, `--logging-level <level>`|Select logging level (choices: `disabled`, `critical`, `error`, `warning`, `info`, `debug`).|
+|`-p`, `--phishing`                      |Enable phishing attack if dictionary attack fails.                              |
+|`-cf FILE`, `--capture-file FILE`       |Capture network traffic to provided file.                                       |
+|`<ssid>`                                |Attack network with provided SSID.                                              |
 |`<interface>`                           |Use provided wireless network interface for attack.                             |
 Program arguments of *wifimitmcli*
 
-As seen from the synopsis shown above, `<essid>` and `<interface>` arguments are
+As seen from the synopsis shown above, `<ssid>` and `<interface>` arguments are
 mandatory to start *wifimitmcli*. In the case that provided arguments are not correct,
 an appropriate error message and the synopsis is shown and the program terminates immediately
 after the arguments check. For more information concerning usage of *wifimitmcli*,
-a user can start the tool with `-h` or `–help` argument, which results in showing a help page.
+a user can start the tool with `-h` or `--help` argument, which results in showing a help page.
 More detailed information about *wifimitmcli* can be found on its installed manual page.
 ```sh
 man wifimitmcli
@@ -119,7 +127,7 @@ sysexits[^sysexits] . Exit codes of the implemented automated tool are shown in 
 | 81  |`PHISHING_INCORRECT_PSK`|WPA/WPA2 passphrase obtained from phishing attack is incorrect.|
 | 82  |`SUBPROCESS_ERROR`      |Failure in subprocess occured.                                 |
 | 130 |`KEYBOARD_INTERRUPT`    |Program received SIGINT.                                       |
-Exit codes of wifimitmcli
+Exit codes of *wifimitmcli*
 
 
 ## Bachelor Project Specification
@@ -205,3 +213,4 @@ Brno University of Technology, Faculty of Information Technology. Supervisor Plu
 *[WPA]: Wi-Fi Protected Access
 *[WPA2]: Wi-Fi Protected Access II
 *[ESSID]: Extended Service Set Identifier
+
