@@ -10,7 +10,17 @@ Martin Vondracek
 
 import logging
 
-__all__ = ['access', 'capture', 'common', 'model', 'topology', 'updatableProcess', 'wep', 'wpa2']
+__all__ = ['access',
+           'capture',
+           'common',
+           'impersonation',
+           'model',
+           'requirements',
+           'topology',
+           'updatableProcess',
+           'wep',
+           'wpa2',
+           ]
 
 # Set default logging handler to avoid "No handler found" warnings.
 logging.getLogger(__name__).addHandler(logging.NullHandler())
