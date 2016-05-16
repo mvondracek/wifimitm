@@ -81,7 +81,7 @@ be a part of other scripts. Table below shows an overview of program arguments o
 tool. The synopsis of *wifimitmcli’s* arguments is specified as follows:
 
 ```bash
-wifimitmcli [-h] [-v] [-ll <level> ] [-p] [-cf FILE ] <essid> <interface>
+wifimitmcli [-h] [-v] [-ll <level> ] [-p] [-cf FILE ] <ssid> <interface>
 ```
 
 |Argument                                |Description                                                                     |
