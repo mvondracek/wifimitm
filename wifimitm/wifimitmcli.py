@@ -15,6 +15,7 @@ import tempfile
 import time
 import warnings
 from enum import Enum, unique
+from typing import BinaryIO
 from typing import Optional, Sequence
 
 import coloredlogs
@@ -121,7 +122,7 @@ def main():
             print('Attack data @ {}'.format(target.dir_path))
 
             interface.start_monitor_mode(target.channel)
-            wireless_unlocker = WirelessUnlocker(ap=target, if_mon=interface.name)
+            wireless_unlocker = WirelessUnlocker(ap=target, monitoring_interface=interface)
             try:
                 print('unlocking')
                 wireless_unlocker.start()
@@ -163,7 +164,9 @@ def main():
 
             print('unlocked')
 
-            wireless_connecter = WirelessConnecter(interface=interface.name)
+            # target unlocked, connect to the network
+
+            wireless_connecter = WirelessConnecter(interface=interface)
             print('connecting')
             wireless_connecter.connect(target)
             print('connected')

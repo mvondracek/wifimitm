@@ -35,7 +35,7 @@ from typing import List, TextIO
 
 import pkg_resources
 
-from wifimitm.model import WirelessAccessPoint
+from .model import WirelessAccessPoint, WirelessInterface
 from .common import WirelessCapturer, deauthenticate
 
 __author__ = 'Martin Vondracek'
@@ -231,10 +231,13 @@ class Wpa2Attacker(object):
     Main class providing attack on WPA2 secured network.
     """
 
-    def __init__(self, ap, if_mon):
+    def __init__(self, ap, monitoring_interface: WirelessInterface):
+        """
+        :type monitoring_interface: WirelessInterface
+        :param monitoring_interface: wireless interface for attack
+        """
         self.ap = ap
-        self.if_mon = if_mon
-        self.if_mon_mac = '00:36:76:54:b2:95'  # TODO (xvondr20) Get real MAC address of if_mon interface.
+        self.monitoring_interface = monitoring_interface  # type: WirelessInterface
 
     def start(self, force=False):
         """
@@ -249,7 +252,7 @@ class Wpa2Attacker(object):
             return
         with tempfile.TemporaryDirectory() as tmp_dirname:
             if not self.ap.wpa_handshake_cap_path:
-                capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=self.if_mon)
+                capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=self.monitoring_interface)
                 capturer.start(self.ap)
 
                 logger.debug('waiting for the capture result')
@@ -265,7 +268,7 @@ class Wpa2Attacker(object):
                             logger.debug('network is empty')
                         # deauthenticate stations to acquire WPA handshake
                         for st in tmp_ap.associated_stations:
-                            deauthenticate(self.if_mon, st)
+                            deauthenticate(self.monitoring_interface, st)
                             time.sleep(2)
                             capturer.update_state()
                             if capturer.flags['detected_wpa_handshake']:

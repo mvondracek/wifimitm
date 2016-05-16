@@ -40,9 +40,10 @@ class ArpSpoofing(object):
         new = 1  # just started
         terminated = 100
 
-    def __init__(self, interface):
+    def __init__(self, interface: WirelessInterface):
         """
-        :param interface: WirelessInterface object or string representing wireless interface name
+        :type interface: WirelessInterface
+        :param interface: wireless interface for spoofing
         """
         self.process = None
         self.state = None
@@ -54,7 +55,7 @@ class ArpSpoofing(object):
         self.process_stdout_r = None
         self.process_stderr_r = None
 
-        self.interface = WirelessInterface.get_wireless_interface_obj(interface)
+        self.interface = interface  # type: WirelessInterface
         self.spoof_started_found = False
 
     def start(self):

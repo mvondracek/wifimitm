@@ -13,7 +13,7 @@ import re
 import subprocess
 from typing import Union
 
-from .model import WirelessInterface
+from .model import WirelessInterface, WirelessAccessPoint
 from .wep import WepAttacker
 from .wpa2 import Wpa2Attacker
 
@@ -34,23 +34,30 @@ class WirelessUnlocker(object):
 
     # TODO (xvondr20) Provide some form of feedback during the attack?
 
-    def __init__(self, ap, if_mon):
+    def __init__(self, ap: WirelessAccessPoint, monitoring_interface: WirelessInterface):
         """
-        :param ap: WirelessAccessPoint object representing the network to be attacked
-        :param if_mon: network interface in monitor mode
+        :type ap: WirelessAccessPoint
+        :param ap: AP targeted for attack
+
+        :type monitoring_interface: WirelessInterface
+        :param monitoring_interface: network interface in monitor mode
         """
-        self.ap = ap
-        self.if_mon = if_mon
-        self.if_mon_mac = '00:36:76:54:b2:95'  # TODO (xvondr20) Get real MAC address of if_mon interface.
+        self.ap = ap  # type: WirelessAccessPoint
+        self.monitoring_interface = monitoring_interface  # type: WirelessInterface
 
         self.ap.make_dir()  # make sure that storage for files is prepared
 
-    def start(self, force=False):
+    def start(self, force: bool = False):
         """
         Start attack on wireless network.
         If targeted network have already been cracked and `force` is False, attack is skipped.
+        :type force: bool
         :param force: attack even if network have already been cracked
         """
+        assert self.monitoring_interface.monitor_mode, 'Interface not in monitor mode.'
+        assert self.ap.encryption in ['OPN', 'WEP', 'WPA', 'WPA2'], "Invalid encryption type '{}'. "\
+            .format(self.ap.encryption)  # based on airodump-ng.c from aircrack-ng-1.2-rc4
+
         if not force and self.ap.is_cracked():
             #  AP already cracked
             logger.info('Known ' + str(self.ap))
@@ -59,15 +66,13 @@ class WirelessUnlocker(object):
         if 'OPN' in self.ap.encryption:
             logger.info('Open ' + str(self.ap))
         elif 'WEP' in self.ap.encryption:
-            wep_attacker = WepAttacker(ap=self.ap, if_mon=self.if_mon)
+            wep_attacker = WepAttacker(ap=self.ap, monitoring_interface=self.monitoring_interface)
             wep_attacker.start()
             logger.info('Unlocked ' + str(self.ap))
         elif 'WPA' in self.ap.encryption:  # 'WPA', 'WPA2 WPA', 'WPA'
-            wpa2_attacker = Wpa2Attacker(ap=self.ap, if_mon=self.if_mon)
+            wpa2_attacker = Wpa2Attacker(ap=self.ap, monitoring_interface=self.monitoring_interface)
             wpa2_attacker.start()
             logger.info('Unlocked ' + str(self.ap))
-        else:
-            raise NotImplementedError  # NOTE: Any other security than OPN, WEP, WPA, WPA2?
 
 
 class WirelessConnecter(object):
@@ -75,12 +80,12 @@ class WirelessConnecter(object):
     Main class providing establishing a connection to the wireless network.
     """
 
-    def __init__(self, interface: Union[WirelessInterface, str]):
+    def __init__(self, interface: WirelessInterface):
         """
-        :type interface: WirelessInterface | str
-        :param interface: WirelessInterface object or string representing wireless interface name
+        :type interface: WirelessInterface
+        :param interface: wireless interface for connection
         """
-        self.interface = WirelessInterface.get_wireless_interface_obj(interface)  # type: WirelessInterface
+        self.interface = interface  # type: WirelessInterface
         self.ap = None
         self.profile = None
 

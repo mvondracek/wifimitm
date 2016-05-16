@@ -15,7 +15,7 @@ import tempfile
 import time
 from enum import Enum, unique
 
-from .model import WirelessAccessPoint, WirelessStation
+from .model import WirelessAccessPoint, WirelessStation, WirelessInterface
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -94,9 +94,13 @@ def csv_to_result(csv_path):
 
 
 class WirelessScanner(object):
-    def __init__(self, tmp_dir, interface):
+    def __init__(self, tmp_dir, interface: WirelessInterface):
+        """
+        :type interface: WirelessInterface
+        :param interface: wireless interface for scanning
+        """
         self.tmp_dir = tmp_dir
-        self.interface = interface
+        self.interface = interface  # type: WirelessInterface
 
         self.process = None
         self.scanning_dir = None
@@ -109,7 +113,7 @@ class WirelessScanner(object):
                '--output-format', 'csv',
                '--write-interval', str(write_interval),
                '-a',
-               self.interface]
+               self.interface.name]
         self.process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.scanning_csv_path = os.path.join(self.scanning_dir.name, 'scan-01.csv')
         logger.debug('scan started')
@@ -162,8 +166,8 @@ class WirelessCapturer(object):
         new = 1  # just started
         terminated = 100
 
-    def __init__(self, tmp_dir, interface):
-        self.interface = interface
+    def __init__(self, tmp_dir, interface: WirelessInterface):
+        self.interface = interface  # type: WirelessInterface
 
         self.process = None
         self.state = None
@@ -214,7 +218,7 @@ class WirelessCapturer(object):
                '--write-interval', '5',
                '--update', '5',  # delay between display updates
                '-a',
-               self.interface]
+               self.interface.name]
         self.process = subprocess.Popen(cmd, cwd=self.capturing_dir.name,
                                         stdout=self.process_stdout_w, stderr=self.process_stderr_w,
                                         universal_newlines=True)
@@ -331,7 +335,7 @@ class WirelessCapturer(object):
         self.wpa_handshake_cap_path = hs_path
 
 
-def deauthenticate(interface, station, count=10):
+def deauthenticate(interface: WirelessInterface, station, count=10):
     """
     This  attack  sends  deauthentication  packets  to  one  or more clients which are currently associated with
     a particular  access point. Deauthenticating clients can be done for a number of reasons: Recovering a hidden ESSID.
@@ -341,7 +345,9 @@ def deauthenticate(interface, station, count=10):
     or on fake authentications.
 
     `deauthentication[Aircrack-ng]<http://www.aircrack-ng.org/doku.php?id=deauthentication>`_
-    :param interface: interface used for sending packets
+    :type interface: WirelessInterface
+    :param interface: wireless interface for deauthentication
+
     :param station: associated station to be deauthenticated
     :param count: amount of deauth series to be sent, each series consists of 64 deauth packets
 
@@ -355,7 +361,7 @@ def deauthenticate(interface, station, count=10):
            '--deauth', str(count),
            '-a', station.associated_ap.bssid,  # MAC address of access point.
            '-c', station.mac_address,
-           interface]
+           interface.name]
 
     process = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     # TODO(xvondr20) Check for deauth ACKs from target? ACKs' count is printed to stdout.

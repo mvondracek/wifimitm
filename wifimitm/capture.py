@@ -68,18 +68,19 @@ class Dumpcap(UpdatableProcess):
         TERMINATED = 100
         """Process have been terminated. By self.stop() call, on its own or by someone else."""
 
-    def __init__(self, interface: Union[WirelessInterface, str], capture_file: Optional[BinaryIO] = None):
+    def __init__(self, interface: WirelessInterface, capture_file: Optional[BinaryIO] = None):
         """
         :type capture_file: Optional[BinaryIO]
         :param capture_file: file for writing packet capture
-        :type interface: WirelessInterface | str
-        :param interface: WirelessInterface object or string representing wireless interface name
+
+        :type interface: WirelessInterface
+        :param interface: wireless interface for capture
         """
         self.state = self.State.STARTED
         self.flags = self.__initial_flags()
         self.stats = self.__initial_stats()
 
-        self.interface = WirelessInterface.get_wireless_interface_obj(interface)
+        self.interface = interface  # type: WirelessInterface
         self.capture_file = capture_file
         # If `capture_file` was None, dumpcap will create capture file in /tmp. `self.tmp_capture_file_path` is set
         # during `self.update`.
