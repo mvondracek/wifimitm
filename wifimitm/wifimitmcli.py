@@ -97,6 +97,7 @@ def main():
         config.cleanup()
         return exitcode.value
 
+    # start successful
     print(config.PROGRAM_DESCRIPTION)
 
     interface = config.interface
@@ -170,6 +171,8 @@ def main():
             print('connecting')
             wireless_connecter.connect(target)
             print('connected')
+
+            # change the network topology
 
             arp_spoofing = ArpSpoofing(interface=interface)
             print('changing topology of network')
