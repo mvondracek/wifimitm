@@ -23,6 +23,8 @@
 
 .PHONY: all requirements install man
 
+all: requirements install man
+
 requirements:
 	sh ./install/requirements_install.sh
 
@@ -32,4 +34,3 @@ install:
 man:
 	sh ./install/man_page/man_page_install.sh
 
-all: requirements install man
