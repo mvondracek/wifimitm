@@ -249,6 +249,7 @@ class Config:
         except ValueError:
             raise argparse.ArgumentTypeError('{} is not a valid interface name'.format(arg))
         else:
+            logger.debug(str(i))
             return i
 
     @classmethod
