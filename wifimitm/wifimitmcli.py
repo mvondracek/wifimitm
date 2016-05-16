@@ -118,7 +118,7 @@ def main():
                 break
 
         if target:
-            print('AP files @ {}'.format(target.dir_path))
+            print('Attack data @ {}'.format(target.dir_path))
 
             interface.start_monitor_mode(target.channel)
             wireless_unlocker = WirelessUnlocker(ap=target, if_mon=interface.name)
