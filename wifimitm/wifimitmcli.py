@@ -216,7 +216,7 @@ class Config:
     def __init__(self):
         self.logging_level = None  # type: Optional[int]
         self.phishing_enabled = None  # type: Optional[bool]
-        self.capture_file = None  # type: Optional[BinaryIO]  TODO(xvondr20) Close if dumpcap did not close it.
+        self.capture_file = None  # type: Optional[BinaryIO]
         self.essid = None  # type: Optional[str]
         # TODO(xvondr20) Implement BSSID arg self.target_bssid = None
         self.interface = None  # type: Optional[WirelessInterface]
@@ -324,7 +324,8 @@ class Config:
         self.interface = parsed_args.interface
 
     def cleanup(self):
-        self.capture_file.close()
+        if self.capture_file:
+            self.capture_file.close()
 
 
 if __name__ == '__main__':
