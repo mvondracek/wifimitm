@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-WiFi Machine-in-the-Middle package
+Wi-Fi Machine-in-the-Middle package
 
 Automation of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-WiFi Machine-in-the-Middle - command line interface
+Wi-Fi Machine-in-the-Middle - command line interface
 
 Automation of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT
@@ -203,7 +203,7 @@ def main():
 
 class Config:
     PROGRAM_NAME = 'wifimitmcli'
-    PROGRAM_DESCRIPTION = 'WiFi Machine-in-the-Middle - command line interface'
+    PROGRAM_DESCRIPTION = 'Wi-Fi Machine-in-the-Middle command-line interface'
     LOGGING_LEVELS_DICT = {'debug': logging.DEBUG,
                            'warning': logging.WARNING,
                            'info': logging.INFO,
