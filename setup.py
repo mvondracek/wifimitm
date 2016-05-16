@@ -39,7 +39,7 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'wifimitmcli = wifimitmcli:main',
+            'wifimitmcli = wifimitm.wifimitmcli:main',
         ]
     }
 )
