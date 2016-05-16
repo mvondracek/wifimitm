@@ -27,8 +27,7 @@ setup(
     author_email=__email__,
     url='http://www.stud.fit.vutbr.cz/~xvondr20/wifimitm/',
 
-    use_scm_version=True,
-    setup_requires=['setuptools_scm'],
+    version='0.2',
 
     packages=['wifimitm', 'wifimitm.tests'],
 

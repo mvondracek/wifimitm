@@ -18,7 +18,6 @@ from enum import Enum, unique
 from typing import Optional, Sequence
 
 import coloredlogs
-import setuptools_scm
 
 from .access import WirelessUnlocker, WirelessConnecter, list_wifi_interfaces
 from .capture import Dumpcap
@@ -30,7 +29,7 @@ from .requirements import Requirements, RequirementError, UidRequirement
 from .topology import ArpSpoofing
 from .wpa2 import verify_psk, PassphraseNotInAnyDictionaryError
 
-__version__ = setuptools_scm.get_version()
+__version__ = '0.2'
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
