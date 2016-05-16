@@ -280,14 +280,17 @@ class Config:
                             )
         parser.add_argument('-cf', '--capture-file',
                             type=argparse.FileType('wb'),
-                            help='capture network traffic to provided file'
+                            help='capture network traffic to provided file',
+                            metavar='FILE',
                             )
-
-        target_ap = parser.add_argument_group(title='Target AP')
-        target_ap.add_argument('essid', help='essid of network for attack')
+        parser.add_argument('essid',
+                            help='essid of network for attack',
+                            metavar='<essid>',
+                            )
         parser.add_argument('interface',
                             type=cls.parser_type_wireless_interface,
-                            help='wireless network interface for attack'
+                            help='wireless network interface for attack',
+                            metavar='<interface>',
                             )
         return parser
 
