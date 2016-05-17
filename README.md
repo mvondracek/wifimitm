@@ -58,7 +58,7 @@ installation. Compiled *upc_keys* and the executable wrappers for *MITMf* and *w
 which are described above, are linked from the `/usr/bin/` directory after the installation.
 The required tools are installed by their installation scripts to the `/opt/` directory.
 Installation of all the requirements can be started by `requirements_install.sh` script
-or `Makefile`. A usage of implemented `Makefile`, which can be used for convenient installation,
+or `Makefile`. A usage of implemented `Makefile`, which can be used for a convenient installation,
 is shown in table below.
 
 |Command            |Description                                                     |
