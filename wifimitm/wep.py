@@ -658,14 +658,14 @@ class WepAttacker(object):
                 cracker.update_state()
 
                 logger.debug('FakeAuthentication: ' + str(fake_authentication.state) + ', ' +
-                              'flags: ' + str(fake_authentication.flags)
-                              )
+                             'flags: ' + str(fake_authentication.flags)
+                             )
 
                 logger.debug(arp_replay)
 
                 logger.debug('WepCracker: ' + str(cracker.state))
 
-                logger.debug('#IV = ' + str(capturer.get_iv_sum()))
+                logger.info('#IV = ' + str(capturer.get_iv_sum()))
                 time.sleep(5)
             logger.info('Cracked ' + str(self.ap))
 
