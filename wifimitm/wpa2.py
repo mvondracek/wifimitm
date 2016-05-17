@@ -299,7 +299,7 @@ class Wpa2Attacker(object):
                         logger.debug('Wpa2Cracker: ' + str(cracker.state))
                         time.sleep(5)
                 except PassphraseNotInDictionaryError:
-                    print('Passphrase not in dictionary. ({}/{})'.format(idx + 1, len(dictionaries)))
+                    logger.info('Passphrase not in dictionary. ({}/{})'.format(idx + 1, len(dictionaries)))
                 finally:
                     cracker.stop()
                     cracker.clean()
