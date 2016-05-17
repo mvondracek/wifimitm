@@ -132,7 +132,7 @@ def main():
             finally:
                 interface.stop_monitor_mode()
 
-            if not target.is_cracked():
+            if not (target.is_cracked() or 'OPN' in target.encryption):
                 if config.phishing_enabled:
                     # try phishing attack to catch password from users
                     print('Try to impersonate AP and perform a phishing attack.')
