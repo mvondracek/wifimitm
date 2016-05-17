@@ -117,6 +117,7 @@ class WirelessConnecter(object):
         """
         Create profile for netctl.
         """
+        # NOTE: Special quoting rules https://github.com/joukewitteveen/netctl/blob/master/docs/netctl.profile.5.txt
         content = "Description='Automatically generated profile by wifimitm - Wi-Fi Machine-in-the-middle'\n"
         content += 'Interface=' + self.interface.name + '\n'
         content += 'Connection=wireless\n'
@@ -197,7 +198,8 @@ def list_wifi_interfaces():
     process.check_returncode()
     # check stderr
     if process.stderr != '':
-        # NOTE: stderr of airmon-ng should be empty, based on airmon-ng file from aircrack-ng-1.2-rc4 (partly checked)
+        # NOTE: stderr should be empty
+        # based on airmon-ng file from aircrack-ng-1.2-rc4 (partly checked)
         logger.warning("Unexpected stderr of airmon-ng: '{}'.".format(process.stderr))
 
     interfaces = list()

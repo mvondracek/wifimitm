@@ -88,8 +88,6 @@ class WirelessAccessPoint(object):
         It the directory does not exist, the attacker is responsible for its creation using `self.make_dir()`.
         :return: str
         """
-        # return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'networks', self.essid)
-        # TODO (xvondr20) what is essid is not available?
         if not self.__dir_path:
             path = os.path.expanduser(os.path.join('~', '.wifimitm', 'networks', self.essid))
             if path.startswith('~'):
@@ -345,7 +343,8 @@ class WirelessInterface(object):
         process.check_returncode()
         # check stderr
         if process.stderr != '':
-            # NOTE: stderr of airmon-ng should be empty, based on airmon-ng file from aircrack-ng-1.2-rc4
+            # NOTE: stderr should be empty
+            # based on airmon-ng file from aircrack-ng-1.2-rc4
             # (partly checked)
             logger.warning("Unexpected stderr of airmon-ng: '{}'.".format(process.stderr))
 
@@ -373,7 +372,8 @@ class WirelessInterface(object):
         process.check_returncode()
         # check stderr
         if process.stderr != '':
-            # NOTE: stderr of airmon-ng should be empty, based on airmon-ng file from aircrack-ng-1.2-rc4
+            # NOTE: stderr of should be empty
+            # based on airmon-ng file from aircrack-ng-1.2-rc4
             # (partly checked)
             logger.warning("Unexpected stderr of airmon-ng: '{}'.".format(process.stderr))
 

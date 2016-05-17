@@ -243,7 +243,7 @@ class WirelessCapturer(object):
         # check every added line in stdout
         if self.process_stdout_r and not self.process_stdout_r.closed:
             for line in self.process_stdout_r:  # type: str
-                # NOTE: stdout of airodump-ng should be empty
+                # NOTE: stdout should be empty
                 logger.warning("Unexpected stdout of airodump-ng: '{}'. {}".format(line, str(self)))
 
         # check every added line in stderr

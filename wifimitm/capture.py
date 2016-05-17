@@ -190,7 +190,7 @@ class Dumpcap(UpdatableProcess):
         # check stdout
         if self.stdout_r and not self.stdout_r.closed:
             for line in self.stdout_r:  # type: str
-                # NOTE: stdout of dumpcap should be empty
+                # NOTE: stdout should be empty
                 logger.warning("Unexpected stdout of dumpcap: '{}'. {}".format(line, str(self)))
 
         # Change state if process was not running in the time of poll() call in the beginning of this method.

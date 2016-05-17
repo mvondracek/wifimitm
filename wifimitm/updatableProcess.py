@@ -181,6 +181,6 @@ class UpdatableProcess(ABC, subprocess.Popen):
             stop_needed = True
             warnings.warn(
                 'Process {} was not stopped correctly. Stopping it by destructor, which is not always safe!'.format(
-                    type(self).__name__), ResourceWarning)  # TODO(xvondr20) Should this be ResourceWarning?
+                    type(self).__name__), ResourceWarning)
         super().__del__()
         self.cleanup(stop=stop_needed)
