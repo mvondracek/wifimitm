@@ -32,8 +32,6 @@ class WirelessUnlocker(object):
     Main class providing attack on wireless network for unlocking it.
     """
 
-    # TODO (xvondr20) Provide some form of feedback during the attack?
-
     def __init__(self, ap: WirelessAccessPoint, monitoring_interface: WirelessInterface):
         """
         :type ap: WirelessAccessPoint
@@ -119,7 +117,7 @@ class WirelessConnecter(object):
         """
         Create profile for netctl.
         """
-        content = "Description='Automatically generated profile by Machine-in-the-middle'\n"
+        content = "Description='Automatically generated profile by wifimitm - Wi-Fi Machine-in-the-middle'\n"
         content += 'Interface=' + self.interface.name + '\n'
         content += 'Connection=wireless\n'
         content += "ESSID='" + self.ap.essid + "'\n"  # TODO(xvondr20) Quoting rules
