@@ -115,7 +115,7 @@ class FakeAuthentication(object):
                '-T', str(tries),
                '-a', self.ap.bssid,
                '-h', self.interface.mac_address]
-        if self.ap.prga_xor_path:  # TODO(xvondr20) What if PRGA XOR is avaible, but network does allow only OSA now?
+        if self.ap.prga_xor_path:
             cmd.append('-y')
             cmd.append(self.ap.prga_xor_path)
         cmd.append(self.interface)
@@ -616,6 +616,7 @@ class WepAttacker(object):
 
             while fake_authentication.state != FakeAuthentication.State.ok:
                 fake_authentication.update_state()
+                logger.debug(str(fake_authentication))
                 if fake_authentication.flags['needs_prga_xor']:
                     # deauthenticate stations to acquire prga_xor
                     result = capturer.get_capture_result()

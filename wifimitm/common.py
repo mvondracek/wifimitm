@@ -324,8 +324,11 @@ class WirelessCapturer(object):
     def has_prga_xor(self):
         return os.path.isfile(self.capturing_xor_path)
 
-    def get_iv_sum(self):
-        # TODO (xvondr20) Get '#IV' without parsing whole result of objects.
+    def get_iv_sum(self) -> str:
+        """
+        Get sum of collected IVs.
+        :rtype: str
+        """
         aps = self.get_capture_result()
         if len(aps):
             return aps[0].iv_sum
@@ -371,5 +374,4 @@ def deauthenticate(interface: WirelessInterface, station, count=10):
            interface.name]
 
     process = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    # TODO(xvondr20) Check for deauth ACKs from target? ACKs' count is printed to stdout.
     logger.debug('deauth sent to ' + station.mac_address)

@@ -278,7 +278,6 @@ class WirelessInterface(object):
         :rtype: str
         :return: string MAC address
         """
-        # TODO(xvondr20) Is this safe?
         ifa = netifaces.ifaddresses(name)
         mac = ifa[netifaces.AF_LINK][0]['addr']
         return mac
