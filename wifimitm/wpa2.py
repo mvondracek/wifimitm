@@ -287,7 +287,10 @@ class Wpa2Attacker(object):
             # prepare dictionaries
             dictionaries = []
             dictionaries += get_personalized_dictionaries(target=self.ap)  # personalized first
-            dictionaries.append(pkg_resources.resource_stream(__package__, 'resources/dictionary.lst'))
+            # NOTE: Dictionary 'openwall_all.lst' has been compiled by Solar Designer
+            # of Openwall Project. http://www.openwall.com/wordlists/ License is attached at 'resources/LICENSE'.
+            dictionaries.append(pkg_resources.resource_stream(__package__, 'resources/test_dictionary.lst'))
+            dictionaries.append(pkg_resources.resource_stream(__package__, 'resources/openwall_all.lst'))
 
             for idx, dictionary in enumerate(dictionaries):
                 try:
