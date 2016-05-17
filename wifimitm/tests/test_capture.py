@@ -26,6 +26,7 @@ class TestDumpcap(_unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        # NOTE: `cls.network_interface_name` needs to be a valid wireless interface name
         cls.network_interface_name = 'wlp1s0'  # type: str
         cls.network_interface_obj = _WirelessInterface(cls.network_interface_name)  # type: _WirelessInterface
 
