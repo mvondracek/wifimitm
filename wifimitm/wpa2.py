@@ -321,9 +321,12 @@ class Wpa2Attacker(object):
 
 
 def verify_psk(ap: WirelessAccessPoint, psk: str):
-    one_word_dictionary = StringIO(psk)
+    dictionary_w = tempfile.NamedTemporaryFile(mode='w', prefix='dictionary')
+    dictionary_w.write(psk)
+    dictionary_w.flush()
+    dictionary_r = open(dictionary_w.name, 'r')
 
-    cracker = Wpa2Cracker(ap=ap, dictionary=one_word_dictionary)
+    cracker = Wpa2Cracker(ap=ap, dictionary=dictionary_r)
     result = False
     try:
         cracker.start()
@@ -339,5 +342,6 @@ def verify_psk(ap: WirelessAccessPoint, psk: str):
     finally:
         cracker.stop()
         cracker.clean()
-        one_word_dictionary.close()
+        dictionary_r.close()
+        dictionary_w.close()
     return result
