@@ -105,7 +105,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp_dirname:
         interface.start_monitor_mode()
 
-        scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=interface.name)
+        scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=interface)
         print('scan')
         scan = scanner.scan_once()
 
