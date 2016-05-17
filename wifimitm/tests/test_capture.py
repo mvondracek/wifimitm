@@ -34,14 +34,7 @@ class TestDumpcap(_unittest.TestCase):
             self.process.cleanup()
             del self.process
 
-    def test__init__1(self):
-        with self.assertRaisesRegex(ValueError, 'You must specify a valid interface name.'):
-            self.process = Dumpcap('invalid network interface name')
-
-    def test__init__2(self):
-        self.process = Dumpcap(self.network_interface_name)
-
-    def test__init__3(self):
+    def test__init__(self):
         self.process = Dumpcap(self.network_interface_obj)
 
     def test_update(self):
