@@ -30,7 +30,6 @@ import subprocess
 import tempfile
 import time
 from enum import Enum, unique
-from io import StringIO
 from typing import List, TextIO
 
 import pkg_resources
@@ -326,7 +325,6 @@ def verify_psk(ap: WirelessAccessPoint, psk: str):
     dictionary_r = open(dictionary_w.name, 'r')
 
     cracker = Wpa2Cracker(ap=ap, dictionary=dictionary_r)
-    result = False
     try:
         cracker.start()
         while not ap.is_cracked():

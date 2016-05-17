@@ -11,7 +11,6 @@ import logging
 import os
 import re
 import subprocess
-from typing import Union
 
 from .model import WirelessInterface, WirelessAccessPoint
 from .wep import WepAttacker

@@ -17,7 +17,7 @@ Martin Vondracek
 import logging
 import re
 from enum import Enum, unique
-from typing import Union, Dict, Optional, BinaryIO
+from typing import Dict, Optional, BinaryIO
 
 from .updatableProcess import UpdatableProcess
 from .model import WirelessInterface

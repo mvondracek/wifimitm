@@ -131,8 +131,8 @@ class FakeAuthentication(object):
                                         stdout=self.process_stdout_w, stderr=self.process_stderr_w,
                                         universal_newlines=True)
         logger.debug('FakeAuthentication started; ' +
-                      'stdout @ ' + self.process_stdout_w.name +
-                      ', stderr @ ' + self.process_stderr_w.name)
+                     'stdout @ ' + self.process_stdout_w.name +
+                     ', stderr @ ' + self.process_stderr_w.name)
 
     def update_state(self):
         """
@@ -329,8 +329,8 @@ class ArpReplay(object):
                                         stdout=self.process_stdout_w, stderr=self.process_stderr_w,
                                         universal_newlines=True)
         logger.debug('ArpReplay started; cwd=' + self.tmp_dir.name + ', ' +
-                      'stdout @ ' + self.process_stdout_w.name +
-                      ', stderr @ ' + self.process_stderr_w.name)
+                     'stdout @ ' + self.process_stdout_w.name +
+                     ', stderr @ ' + self.process_stderr_w.name)
 
     def update_state(self):
         """
@@ -493,8 +493,8 @@ class WepCracker(object):
         # NOTE: Aircrack-ng does not flush when stdout is redirected to file and -q is set.
         self.state = self.__class__.State.ok
         logger.debug('WepCracker started; cwd=' + self.tmp_dir.name + ', ' +
-                      'stdout @ ' + self.process_stdout_w.name +
-                      ', stderr @ ' + self.process_stderr_w.name)
+                     'stdout @ ' + self.process_stdout_w.name +
+                     ', stderr @ ' + self.process_stderr_w.name)
 
     def update_state(self):
         """

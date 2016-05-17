@@ -10,7 +10,7 @@ Martin Vondracek
 import logging
 import re
 from enum import Enum, unique
-from typing import Union, Optional, Dict
+from typing import Optional, Dict
 
 from wifimitm.updatableProcess import UpdatableProcess
 from .model import WirelessInterface, WirelessAccessPoint

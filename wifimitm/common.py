@@ -232,8 +232,8 @@ class WirelessCapturer(object):
         self.capturing_xor_path = os.path.join(self.capturing_dir.name,
                                                'capture-01-' + ap.bssid.replace(':', '-') + '.xor')
         logger.debug('WirelessCapturer started; cwd=' + self.capturing_dir.name + ', ' +
-                      'stdout @ ' + self.process_stdout_w.name +
-                      ', stderr @ ' + self.process_stderr_w.name)
+                     'stdout @ ' + self.process_stdout_w.name +
+                     ', stderr @ ' + self.process_stderr_w.name)
 
     def update_state(self):
         """
@@ -377,5 +377,5 @@ def deauthenticate(interface: WirelessInterface, station, count=10):
            '-c', station.mac_address,
            interface.name]
 
-    process = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     logger.debug('deauth sent to ' + station.mac_address)
