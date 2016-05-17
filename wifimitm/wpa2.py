@@ -212,14 +212,17 @@ class Wpa2Cracker(object):
 def get_personalized_dictionaries(target: WirelessAccessPoint) -> List[TextIO]:
     """
     Create and return dictionary personalized by available AP details.
+    :type target: WirelessAccessPoint
     :param target: targeted AP
+
     :rtype: List[TextIO]
     :return: list of opened personalized dictionaries
     """
     dictionaries = []
     if re.match(r'^UPC\d{7}$', target.essid):
+        band = '24'  # TODO: Detect band of AP.
         t = pipes.Template()
-        t.prepend('upc_keys {} {}'.format(target.essid, '24'), '.-')  # TODO(xvondr20) 5 GHz?
+        t.prepend('upc_keys {} {}'.format(target.essid, band), '.-')
         t.append('grep "  -> WPA2 phrase for "', '--')
         t.append('sed "s/^  -> WPA2 phrase for \S* = \'\(.*\)\'$/\\1/"', '--')
         d = t.open('dictionary-pipeline', 'r')
