@@ -3,11 +3,6 @@
 # Martin Vondracek
 # 2016
 
-wifimitm/resources/*
-!wifimitm/resources/dictionary.lst
-wifimitm/networks/
-wifimitm/setup/AP config
-wifimitm/libs
 
 ### Python
 # Byte-compiled / optimized / DLL files
