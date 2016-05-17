@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class WirelessStation(object):
-    def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
+    def __str__(self, *args, **kwargs):
         return '<WirelessStation mac_address={}, power={}>'.format(self.mac_address, self.power)
 
     def __init__(self, mac_address, power):
@@ -33,7 +33,7 @@ class WirelessStation(object):
 
 
 class WirelessAccessPoint(object):
-    def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
+    def __str__(self, *args, **kwargs):
         s = '<WirelessAccessPoint essid={}, bssid={}'.format(self.essid, self.bssid)
 
         if self.is_cracked():
@@ -111,7 +111,7 @@ class WirelessAccessPoint(object):
         Decide whether the network have been successfully cracked and therefore a PSK is available.
         :return: bool
         """
-        return self.psk_path is not None  # TODO(xvondr20) WPS?
+        return self.psk_path is not None
 
     @property
     def cracked_psk(self):
@@ -215,7 +215,7 @@ def interface_exists(name: str) -> bool:
 
 
 class WirelessInterface(object):
-    def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
+    def __str__(self, *args, **kwargs):
         s = '<WirelessInterface name={}, mac_address={}, channel={}, driver={}, chipset={}'\
             .format(
                 self.name,
@@ -271,10 +271,13 @@ class WirelessInterface(object):
             raise TypeError
 
     @staticmethod
-    def get_mac_by_name(name):
+    def get_mac_by_name(name: str) -> str:
         """
         Get MAC address of interface specified by name of the interface.
+        :type name: str
         :param name: name of the network interface
+
+        :rtype: str
         :return: string MAC address
         """
         # TODO(xvondr20) Is this safe?
