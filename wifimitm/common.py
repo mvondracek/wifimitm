@@ -236,8 +236,10 @@ class WirelessCapturer(object):
         Read new output from stdout and stderr, check if process is alive. Set appropriate flags.
         """
         # check every added line in stdout
-        # TODO (xvondr20) Does 'airodump-ng' ever print anything to stdout?
-        assert self.process_stdout_r.read() == ''
+        if self.process_stdout_r and not self.process_stdout_r.closed:
+            for line in self.process_stdout_r:  # type: str
+                # NOTE: stdout of airodump-ng should be empty
+                logger.warning("Unexpected stdout of airodump-ng: '{}'. {}".format(line, str(self)))
 
         # check every added line in stderr
         for line in self.process_stderr_r:

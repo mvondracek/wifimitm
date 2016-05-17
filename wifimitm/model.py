@@ -341,8 +341,10 @@ class WirelessInterface(object):
 
         process.check_returncode()
         # check stderr
-        # TODO (xvondr20) Does 'airmon-ng' ever print anything to stderr?
-        assert process.stderr == ''
+        if process.stderr != '':
+            # NOTE: stderr of airmon-ng should be empty, based on airmon-ng file from aircrack-ng-1.2-rc4
+            # (partly checked)
+            logger.warning("Unexpected stderr of airmon-ng: '{}'.".format(process.stderr))
 
         for line in process.stdout.splitlines():
             m = cre_mon_enabled.match(line)
@@ -367,8 +369,10 @@ class WirelessInterface(object):
 
         process.check_returncode()
         # check stderr
-        # TODO (xvondr20) Does 'airmon-ng' ever print anything to stderr?
-        assert process.stderr == ''
+        if process.stderr != '':
+            # NOTE: stderr of airmon-ng should be empty, based on airmon-ng file from aircrack-ng-1.2-rc4
+            # (partly checked)
+            logger.warning("Unexpected stderr of airmon-ng: '{}'.".format(process.stderr))
 
         for line in process.stdout.splitlines():
             m = cre_mon_disabled.match(line)

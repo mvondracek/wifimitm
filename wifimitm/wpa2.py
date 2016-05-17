@@ -151,8 +151,10 @@ class Wpa2Cracker(object):
                 raise PassphraseNotInDictionaryError()
 
         # check stderr
-        # TODO (xvondr20) Does 'aircrack-ng' ever print anything to stderr?
-        assert self.process_stderr_r.read() == ''
+        if self.process_stderr_r and not self.process_stderr_r.closed:
+            for line in self.process_stderr_r:  # type: str
+                # NOTE: stderr should be empty
+                logger.warning("Unexpected stderr of 'aircrack-ng': '{}'. {}".format(line, str(self)))
 
     def stop(self):
         """

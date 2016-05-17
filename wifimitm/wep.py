@@ -154,8 +154,10 @@ class FakeAuthentication(object):
                 logger.debug('FakeAuthentication needs PRGA XOR.')
 
         # check stderr
-        # TODO (xvondr20) Does 'aireplay-ng --fakeauth' ever print anything to stderr?
-        assert self.process_stderr_r.read() == ''
+        if self.process_stderr_r and not self.process_stderr_r.closed:
+            for line in self.process_stderr_r:  # type: str
+                # NOTE: stderr should be empty
+                logger.warning("Unexpected stderr of 'aireplay-ng --fakeauth': '{}'. {}".format(line, str(self)))
 
         # is process running?
         if self.process.poll() is not None:
@@ -366,8 +368,10 @@ class ArpReplay(object):
                     self.cap_path = os.path.join(self.tmp_dir.name, m.group('cap_filename'))
 
         # check stderr
-        # TODO (xvondr20) Does 'aireplay-ng --arpreplay' ever print anything to stderr?
-        assert self.process_stderr_r.read() == ''
+        if self.process_stderr_r and not self.process_stderr_r.closed:
+            for line in self.process_stderr_r:  # type: str
+                # NOTE: stderr should be empty
+                logger.warning("Unexpected stderr of 'aireplay-ng --arpreplay': '{}'. {}".format(line, str(self)))
 
         # is process running?
         if self.process.poll() is not None:
@@ -517,8 +521,10 @@ class WepCracker(object):
                 assert '100%' in line  # TODO(xvondr20) Incorrect decryption?
 
         # check stderr
-        # TODO (xvondr20) Does 'aircrack-ng' ever print anything to stderr?
-        assert self.process_stderr_r.read() == ''
+        if self.process_stderr_r and not self.process_stderr_r.closed:
+            for line in self.process_stderr_r:  # type: str
+                # NOTE: stderr should be empty
+                logger.warning("Unexpected stderr of 'aircrack-ng': '{}'. {}".format(line, str(self)))
 
     def stop(self):
         """

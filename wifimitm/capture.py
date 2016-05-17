@@ -188,10 +188,10 @@ class Dumpcap(UpdatableProcess):
                     assert False, 'Unexpected stderr of dumpcap.' + line + str(self)
 
         # check stdout
-        # TODO (xvondr20) Does 'dumpcap' ever print anything to stdout?
         if self.stdout_r and not self.stdout_r.closed:
             for line in self.stdout_r:  # type: str
-                logger.warning('Unexpected stdout of dumpcap.' + line + str(self))
+                # NOTE: stdout of dumpcap should be empty
+                logger.warning("Unexpected stdout of dumpcap: '{}'. {}".format(line, str(self)))
 
         # Change state if process was not running in the time of poll() call in the beginning of this method.
         # NOTE: Process' poll() needs to be called in the beginning of this method and returncode checked in the end
