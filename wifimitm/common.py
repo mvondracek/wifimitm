@@ -336,12 +336,16 @@ class WirelessCapturer(object):
             return 0
 
     def __extract_wpa_handshake(self):
+        """
+        Raises:
+            CalledProcessError: If returncode of wpaclean is non-zero.
+        """
         if not os.path.isfile(self.capturing_cap_path):
             raise FileNotFoundError
         hs_path = os.path.join(self.capturing_dir.name, 'WPA_handshake.cap')
         cmd = ['wpaclean', hs_path, self.capturing_cap_path]
-        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        # TODO(xvondr20) Check process' feedback.
+        process = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        process.check_returncode()
         self.wpa_handshake_cap_path = hs_path
 
 
