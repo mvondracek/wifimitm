@@ -518,7 +518,9 @@ class WepCracker(object):
                 self.ap.save_psk_file(os.path.join(self.tmp_dir.name, 'psk.hex'))
                 logger.debug('WepCracker found key!')
             elif 'Decrypted correctly:' in line:
-                assert '100%' in line  # TODO(xvondr20) Incorrect decryption?
+                if '100%' not in line:
+                    # Incorrect decryption?
+                    logger.warning(line)
 
         # check stderr
         if self.process_stderr_r and not self.process_stderr_r.closed:
