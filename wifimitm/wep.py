@@ -118,7 +118,7 @@ class FakeAuthentication(object):
         if self.ap.prga_xor_path:
             cmd.append('-y')
             cmd.append(self.ap.prga_xor_path)
-        cmd.append(self.interface)
+        cmd.append(self.interface.name)
         # temp files (write, read) for stdout and stderr
         self.process_stdout_w = tempfile.NamedTemporaryFile(prefix='fakeauth-stdout', dir=self.tmp_dir)
         self.process_stdout_r = open(self.process_stdout_w.name, 'r')
