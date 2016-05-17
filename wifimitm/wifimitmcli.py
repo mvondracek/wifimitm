@@ -224,7 +224,6 @@ class Config:
         self.phishing_enabled = None  # type: Optional[bool]
         self.capture_file = None  # type: Optional[BinaryIO]
         self.essid = None  # type: Optional[str]
-        # TODO(xvondr20) Implement BSSID arg self.target_bssid = None
         self.interface = None  # type: Optional[WirelessInterface]
 
         self.parser = self.init_parser()  # type: argparse.ArgumentParser
