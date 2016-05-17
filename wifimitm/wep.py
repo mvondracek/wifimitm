@@ -642,7 +642,7 @@ class WepAttacker(object):
                     logger.debug('fakeauth: 5 s backoff')
                     time.sleep(5)
                     fake_authentication.start()
-                time.sleep(1)
+                time.sleep(2)
 
             arp_replay = ArpReplay(interface=self.monitoring_interface, ap=self.ap)
             arp_replay.start(source_mac=self.monitoring_interface.mac_address)
