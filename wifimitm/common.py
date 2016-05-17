@@ -60,9 +60,7 @@ def csv_row_to_ap(row) -> WirelessAccessPoint:
     encryption = row[5].strip()
     cipher = row[6].strip()
     authentication = row[7].strip()
-    # TODO (xvondr20) WPS detection with Reaver?
-    # wps = row[6].strip()
-    wps = False
+    wps = row[6].strip()
     #
     essid = row[13].strip()
     iv_sum = row[10].strip()
