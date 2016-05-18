@@ -27,7 +27,7 @@ setup(
     author_email=__email__,
     url='http://www.stud.fit.vutbr.cz/~xvondr20/wifimitm/',
 
-    version='0.2',
+    version='0.3',
 
     packages=['wifimitm', 'wifimitm.tests'],
 
