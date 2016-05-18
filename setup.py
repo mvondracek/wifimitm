@@ -31,7 +31,7 @@ setup(
 
     packages=['wifimitm', 'wifimitm.tests'],
 
-    requires=['netifaces', 'coloredlogs'],
+    install_requires=['netifaces', 'coloredlogs'],
     test_suite='wifimitm.tests',
 
     include_package_data=True,
