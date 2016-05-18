@@ -75,6 +75,15 @@ def main():
     logging.captureWarnings(True)
     warnings.simplefilter('always', ResourceWarning)
 
+    config = Config()
+    config.parse_args()
+    if config.logging_level:
+        coloredlogs.install(level=config.logging_level)
+    else:
+        logging.disable(logging.CRITICAL)
+    logger.info('Config parsed from args.')
+    logger.debug(str(config))
+
     logger.info('Check all requirements.')
     try:
         Requirements.check_all()
@@ -84,17 +93,9 @@ def main():
         else:
             exitcode = ExitCode.EX_UNAVAILABLE
         print(e.requirement.msg, file=sys.stderr)
-        print('Requirements check failed.', file=sys.stderr)
+        print('Requirements check failed.')
+        config.cleanup()
         return exitcode.value
-
-    config = Config()
-    config.parse_args()
-    if config.logging_level:
-        coloredlogs.install(level=config.logging_level)
-    else:
-        logging.disable(logging.CRITICAL)
-    logger.info('Config parsed from args.')
-    logger.debug(str(config))
 
     # start successful
     print(config.PROGRAM_DESCRIPTION)
