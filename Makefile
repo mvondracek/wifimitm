@@ -31,7 +31,7 @@ requirements:
 	sh ./install/requirements_install.sh
 
 install:
-	python ./setup.py install
+	pip install .
 
 man:
 	sh ./install/man_page/man_page_install.sh
