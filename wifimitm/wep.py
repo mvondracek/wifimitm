@@ -47,12 +47,11 @@ logger = logging.getLogger(__name__)
 
 class FakeAuthentication(object):
     """
-    The  fake authentication attack allows you to perform the two types of WEP authentication (Open System and
+    "The  fake authentication attack allows you to perform the two types of WEP authentication (Open System and
     Shared Key) plus associate with the access point (AP). This is only useful when you need  an associated  MAC
     address in various aireplay-ng attacks and there is currently no associated client.
     It should be noted that the fake authentication attack does NOT generate any ARP packets.
-    Fake authentication cannot be used to authenticate/associate with WPA/WPA2 Access Points.
-
+    Fake authentication cannot be used to authenticate/associate with WPA/WPA2 Access Points."
     `fake_authentication[Aircrack-ng] <http://www.aircrack-ng.org/doku.php?id=fake_authentication>`_
 
     Process at first tries Open System Authentication. If OSA is not supported and Shared Key Authentication is

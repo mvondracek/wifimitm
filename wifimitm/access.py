@@ -86,7 +86,7 @@ class WirelessConnecter(object):
         self.ap = None
         self.profile = None
 
-    def connect(self, ap):
+    def connect(self, ap: WirelessAccessPoint):
         """
         Connect to the selected network.
         :param ap: WirelessAccessPoint object representing the network for connection
@@ -96,7 +96,7 @@ class WirelessConnecter(object):
         if 'OPN' not in ap.encryption and not ap.is_cracked():
             raise NotCrackedError()
 
-        self.ap = ap
+        self.ap = ap  # type: WirelessAccessPoint
         logger.info('Connecting to ' + self.ap.essid)
         self.__create_profile()
         self.interface.set_down()
@@ -133,7 +133,7 @@ class WirelessConnecter(object):
             content += 'Security=wpa\n'
             content += 'Key=' + self.ap.cracked_psk + '\n'
 
-        profile = 'mitm-' + self.interface.name + '-' + self.ap.essid
+        profile = 'wifimitm-' + self.interface.name + '-' + self.ap.essid
         profile_path = os.path.join('/etc/netctl', profile)
         if os.path.isfile(profile_path):
             logger.warning('Existing netctl profile ' + profile + ' overwritten.')
