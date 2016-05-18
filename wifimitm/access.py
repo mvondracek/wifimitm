@@ -120,7 +120,7 @@ class WirelessConnecter(object):
         content = "Description='Automatically generated profile by wifimitm - Wi-Fi Machine-in-the-middle'\n"
         content += 'Interface=' + self.interface.name + '\n'
         content += 'Connection=wireless\n'
-        content += "ESSID='" + self.ap.essid + "'\n"
+        content += "ESSID='" + self.ap.essid.replace("'", "'\\''") + "'\n"
         content += 'AP=' + self.ap.bssid + '\n'
         content += 'IP=dhcp\n'
 
@@ -131,7 +131,7 @@ class WirelessConnecter(object):
             content += 'Key=\\"' + self.ap.cracked_psk + '\n'
         elif 'WPA' in self.ap.encryption:  # 'WPA', 'WPA2 WPA', 'WPA'
             content += 'Security=wpa\n'
-            content += 'Key=' + self.ap.cracked_psk + '\n'
+            content += "Key='" + self.ap.cracked_psk.replace("'", "'\\''") + "'\n"
 
         profile = 'wifimitm-' + self.interface.name + '-' + self.ap.essid
         profile_path = os.path.join('/etc/netctl', profile)
