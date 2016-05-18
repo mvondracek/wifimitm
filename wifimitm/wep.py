@@ -111,7 +111,7 @@ class FakeAuthentication(object):
         cmd = ['aireplay-ng',
                '--fakeauth', str(reassoc_delay),
                '-q', str(keep_alive_delay),
-               '-T', str(tries),
+               # '-T', str(tries),
                '-a', self.ap.bssid,
                '-h', self.interface.mac_address]
         if self.ap.prga_xor_path:
@@ -159,7 +159,7 @@ class FakeAuthentication(object):
                 logger.warning("Unexpected stderr of 'aireplay-ng --fakeauth': '{}'. {}".format(line, str(self)))
 
         # is process running?
-        if self.process.poll() is not None:
+        if self.process and self.process.poll() is not None:
             self.state = FakeAuthentication.State.terminated
 
     def stop(self):
@@ -193,17 +193,21 @@ class FakeAuthentication(object):
         if self.process:
             self.stop()
         # close opened files
-        self.process_stdout_r.close()
-        self.process_stdout_r = None
+        if self.process_stdout_r:
+            self.process_stdout_r.close()
+            self.process_stdout_r = None
 
-        self.process_stdout_w.close()
-        self.process_stdout_w = None
+        if self.process_stdout_w:
+            self.process_stdout_w.close()
+            self.process_stdout_w = None
 
-        self.process_stderr_r.close()
-        self.process_stderr_r = None
+        if self.process_stderr_r:
+            self.process_stderr_r.close()
+            self.process_stderr_r = None
 
-        self.process_stderr_w.close()
-        self.process_stderr_w = None
+        if self.process_stderr_w:
+            self.process_stderr_w.close()
+            self.process_stderr_w = None
 
         # remove state
         self.state = None
@@ -617,6 +621,8 @@ class WepAttacker(object):
                 fake_authentication.update_state()
                 logger.debug(str(fake_authentication))
                 if fake_authentication.flags['needs_prga_xor']:
+                    # stop fakeauth without prga_xor
+                    fake_authentication.stop()
                     # deauthenticate stations to acquire prga_xor
                     result = capturer.get_capture_result()
                     if len(result):  # if AP was detected by capturer
@@ -629,9 +635,8 @@ class WepAttacker(object):
                                     break
                         self.ap.save_prga_xor(capturer.capturing_xor_path)
                         logger.info('PRGA XOR detected.')
-                        # stop fakeauth without prga_xor
-                        fake_authentication.clean()
                         # start fakeauth with prga_xor
+                        fake_authentication.clean()
                         fake_authentication.start()
                     else:
                         logger.info('Network not detected by capturer yet.')
@@ -673,7 +678,7 @@ class WepAttacker(object):
                 logger.debug('WepCracker: ' + str(cracker.state))
 
                 logger.info('#IV = ' + str(capturer.get_iv_sum()))
-                time.sleep(5)
+                time.sleep(2)
             logger.info('Cracked ' + str(self.ap))
 
             cracker.stop()
