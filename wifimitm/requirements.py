@@ -132,15 +132,20 @@ class Requirements(object):
         CommandRequirement('aircrack-ng'),
         CommandRequirement('wpaclean'),
         CommandRequirement('airmon-ng'),
+        CommandRequirement('rfkill'),
         CommandRequirement('airodump-ng'),
         CommandRequirement('aireplay-ng'),
         CommandRequirement('netctl'),
+        CommandRequirement('wpa_supplicant'),
         CommandRequirement('dumpcap'),
         CommandRequirement('mitmf'),
         CommandRequirement('upc_keys'),
         CommandRequirement('wifiphisher'),
         CommandRequirement('grep'),
         CommandRequirement('sed'),
+        CommandRequirement('tcpdump'),  # for MITMf
+        CommandRequirement('hostapd'),  # for wifiphisher
+        CommandRequirement('dnsmasq'),  # for wifiphisher
         UidRequirement(UidRequirement.UID_ROOT)
     ]  # type: List[Requirement]
 
