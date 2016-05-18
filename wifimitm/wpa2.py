@@ -288,7 +288,7 @@ class Wpa2Attacker(object):
             # NOTE: Dictionary 'openwall_all.lst' has been compiled by Solar Designer
             # of Openwall Project. http://www.openwall.com/wordlists/ License is attached at 'resources/LICENSE'.
             dictionaries.append(pkg_resources.resource_stream(__package__, 'resources/test_dictionary.lst'))
-            dictionaries.append(pkg_resources.resource_stream(__package__, 'resources/openwall_all.lst'))
+            dictionaries.append(pkg_resources.resource_stream(__package__, 'resources/openwall_password.lst'))
 
             for idx, dictionary in enumerate(dictionaries):
                 try:
