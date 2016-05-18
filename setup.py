@@ -27,11 +27,11 @@ setup(
     author_email=__email__,
     url='http://www.stud.fit.vutbr.cz/~xvondr20/wifimitm/',
 
-    version='0.3',
+    version='0.3.1',
 
     packages=['wifimitm', 'wifimitm.tests'],
 
-    requires=['netifaces', 'coloredlogs'],
+    install_requires=['netifaces', 'coloredlogs'],
     test_suite='wifimitm.tests',
 
     include_package_data=True,

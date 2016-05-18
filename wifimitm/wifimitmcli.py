@@ -30,7 +30,7 @@ from .requirements import Requirements, RequirementError, UidRequirement
 from .topology import ArpSpoofing
 from .wpa2 import verify_psk, PassphraseNotInAnyDictionaryError
 
-__version__ = '0.3'
+__version__ = '0.3.1'
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
@@ -75,15 +75,6 @@ def main():
     logging.captureWarnings(True)
     warnings.simplefilter('always', ResourceWarning)
 
-    config = Config()
-    config.parse_args()
-    if config.logging_level:
-        coloredlogs.install(level=config.logging_level)
-    else:
-        logging.disable(logging.CRITICAL)
-    logger.info('Config parsed from args.')
-    logger.debug(str(config))
-
     logger.info('Check all requirements.')
     try:
         Requirements.check_all()
@@ -93,9 +84,17 @@ def main():
         else:
             exitcode = ExitCode.EX_UNAVAILABLE
         print(e.requirement.msg, file=sys.stderr)
-        print('Requirements check failed.')
-        config.cleanup()
+        print('Requirements check failed.', file=sys.stderr)
         return exitcode.value
+
+    config = Config()
+    config.parse_args()
+    if config.logging_level:
+        coloredlogs.install(level=config.logging_level)
+    else:
+        logging.disable(logging.CRITICAL)
+    logger.info('Config parsed from args.')
+    logger.debug(str(config))
 
     # start successful
     print(config.PROGRAM_DESCRIPTION)

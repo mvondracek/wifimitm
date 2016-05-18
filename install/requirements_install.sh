@@ -62,6 +62,32 @@ function main()
     announce_task "${INSTALL_NAME} install"
 
 
+    TASK="pacman packages"
+    announce_task "${TASK}"
+    pacman --needed -S \
+        python-pip \
+        git \
+        aircrack-ng \
+        rfkill \
+        netctl \
+        wireshark-cli \
+        wpa_supplicant \
+        tcpdump \
+        hostapd \
+        dnsmasq
+
+    check_task_result $? "${TASK}"
+
+    TASK="pip install virtualenvwrapper"
+    announce_task "${TASK}"
+    pip install virtualenvwrapper
+    check_task_result $? "${TASK}"
+
+    TASK="source /usr/bin/virtualenvwrapper.sh"
+    announce_task "${TASK}"
+    source /usr/bin/virtualenvwrapper.sh
+    check_task_result $? "${TASK}"
+
     TASK="MITMf"
     announce_task "${TASK}"
     ${SCRIPT_DIR}/MITMf/MITMf_install.sh
