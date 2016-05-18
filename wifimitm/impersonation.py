@@ -10,7 +10,7 @@ Martin Vondracek
 import logging
 import re
 from enum import Enum, unique
-from typing import Union, Optional, Dict
+from typing import Optional, Dict
 
 from wifimitm.updatableProcess import UpdatableProcess
 from .model import WirelessInterface, WirelessAccessPoint
@@ -117,14 +117,14 @@ class Wifiphisher(UpdatableProcess):
 
     def __init__(self,
                  ap: WirelessAccessPoint,
-                 jamming_interface: Union[WirelessInterface, str],
+                 jamming_interface: WirelessInterface,
                  template: Optional[str] = 'connection_reset'):
         """
         :type ap: WirelessAccessPoint
         :param ap: AP targeted for impersonation and phishing attack
 
-        :type jamming_interface: Union[WirelessInterface, str]
-        :param jamming_interface: WirelessInterface object or string representing wireless jamming_interface name
+        :type jamming_interface: WirelessInterface
+        :param jamming_interface: wireless interface for jamming
 
         :type template: Optional[str]
         :param template: name of a phishing template from wifiphisher
@@ -136,7 +136,7 @@ class Wifiphisher(UpdatableProcess):
         self.password = None  # type: Optional[str]
         self.output_section = None  # type: Optional[Wifiphisher.OutputSection]
 
-        self.jamming_interface = WirelessInterface.get_wireless_interface_obj(jamming_interface)
+        self.jamming_interface = jamming_interface  # type: WirelessInterface
 
         cmd = ['wifiphisher',
                '--jamminginterface', self.jamming_interface.name,

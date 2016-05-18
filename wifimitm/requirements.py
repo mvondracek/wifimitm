@@ -129,6 +129,8 @@ class Requirements(object):
     """
 
     REQUIREMENTS = [
+        CommandRequirement('aircrack-ng'),
+        CommandRequirement('wpaclean'),
         CommandRequirement('airmon-ng'),
         CommandRequirement('airodump-ng'),
         CommandRequirement('aireplay-ng'),
@@ -137,6 +139,8 @@ class Requirements(object):
         CommandRequirement('mitmf'),
         CommandRequirement('upc_keys'),
         CommandRequirement('wifiphisher'),
+        CommandRequirement('grep'),
+        CommandRequirement('sed'),
         UidRequirement(UidRequirement.UID_ROOT)
     ]  # type: List[Requirement]
 

@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class WirelessStation(object):
-    def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
+    def __str__(self, *args, **kwargs):
         return '<WirelessStation mac_address={}, power={}>'.format(self.mac_address, self.power)
 
     def __init__(self, mac_address, power):
@@ -33,7 +33,7 @@ class WirelessStation(object):
 
 
 class WirelessAccessPoint(object):
-    def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
+    def __str__(self, *args, **kwargs):
         s = '<WirelessAccessPoint essid={}, bssid={}'.format(self.essid, self.bssid)
 
         if self.is_cracked():
@@ -88,8 +88,6 @@ class WirelessAccessPoint(object):
         It the directory does not exist, the attacker is responsible for its creation using `self.make_dir()`.
         :return: str
         """
-        # return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'networks', self.essid)
-        # TODO (xvondr20) what is essid is not available?
         if not self.__dir_path:
             path = os.path.expanduser(os.path.join('~', '.wifimitm', 'networks', self.essid))
             if path.startswith('~'):
@@ -111,7 +109,7 @@ class WirelessAccessPoint(object):
         Decide whether the network have been successfully cracked and therefore a PSK is available.
         :return: bool
         """
-        return self.psk_path is not None  # TODO(xvondr20) WPS?
+        return self.psk_path is not None
 
     @property
     def cracked_psk(self):
@@ -215,7 +213,7 @@ def interface_exists(name: str) -> bool:
 
 
 class WirelessInterface(object):
-    def __str__(self, *args, **kwargs):  # TODO (xvondr20) just for debugging
+    def __str__(self, *args, **kwargs):
         s = '<WirelessInterface name={}, mac_address={}, channel={}, driver={}, chipset={}'\
             .format(
                 self.name,
@@ -271,13 +269,15 @@ class WirelessInterface(object):
             raise TypeError
 
     @staticmethod
-    def get_mac_by_name(name):
+    def get_mac_by_name(name: str) -> str:
         """
         Get MAC address of interface specified by name of the interface.
+        :type name: str
         :param name: name of the network interface
+
+        :rtype: str
         :return: string MAC address
         """
-        # TODO(xvondr20) Is this safe?
         ifa = netifaces.ifaddresses(name)
         mac = ifa[netifaces.AF_LINK][0]['addr']
         return mac
@@ -341,8 +341,11 @@ class WirelessInterface(object):
 
         process.check_returncode()
         # check stderr
-        # TODO (xvondr20) Does 'airmon-ng' ever print anything to stderr?
-        assert process.stderr == ''
+        if process.stderr != '':
+            # NOTE: stderr should be empty
+            # based on airmon-ng file from aircrack-ng-1.2-rc4
+            # (partly checked)
+            logger.warning("Unexpected stderr of airmon-ng: '{}'.".format(process.stderr))
 
         for line in process.stdout.splitlines():
             m = cre_mon_enabled.match(line)
@@ -367,8 +370,11 @@ class WirelessInterface(object):
 
         process.check_returncode()
         # check stderr
-        # TODO (xvondr20) Does 'airmon-ng' ever print anything to stderr?
-        assert process.stderr == ''
+        if process.stderr != '':
+            # NOTE: stderr of should be empty
+            # based on airmon-ng file from aircrack-ng-1.2-rc4
+            # (partly checked)
+            logger.warning("Unexpected stderr of airmon-ng: '{}'.".format(process.stderr))
 
         for line in process.stdout.splitlines():
             m = cre_mon_disabled.match(line)

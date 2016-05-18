@@ -17,7 +17,7 @@ Martin Vondracek
 import logging
 import re
 from enum import Enum, unique
-from typing import Union, Dict, Optional, BinaryIO
+from typing import Dict, Optional, BinaryIO
 
 from .updatableProcess import UpdatableProcess
 from .model import WirelessInterface
@@ -68,18 +68,19 @@ class Dumpcap(UpdatableProcess):
         TERMINATED = 100
         """Process have been terminated. By self.stop() call, on its own or by someone else."""
 
-    def __init__(self, interface: Union[WirelessInterface, str], capture_file: Optional[BinaryIO] = None):
+    def __init__(self, interface: WirelessInterface, capture_file: Optional[BinaryIO] = None):
         """
         :type capture_file: Optional[BinaryIO]
         :param capture_file: file for writing packet capture
-        :type interface: WirelessInterface | str
-        :param interface: WirelessInterface object or string representing wireless interface name
+
+        :type interface: WirelessInterface
+        :param interface: wireless interface for capture
         """
         self.state = self.State.STARTED
         self.flags = self.__initial_flags()
         self.stats = self.__initial_stats()
 
-        self.interface = WirelessInterface.get_wireless_interface_obj(interface)
+        self.interface = interface  # type: WirelessInterface
         self.capture_file = capture_file
         # If `capture_file` was None, dumpcap will create capture file in /tmp. `self.tmp_capture_file_path` is set
         # during `self.update`.
@@ -187,10 +188,10 @@ class Dumpcap(UpdatableProcess):
                     assert False, 'Unexpected stderr of dumpcap.' + line + str(self)
 
         # check stdout
-        # TODO (xvondr20) Does 'dumpcap' ever print anything to stdout?
         if self.stdout_r and not self.stdout_r.closed:
             for line in self.stdout_r:  # type: str
-                logger.warning('Unexpected stdout of dumpcap.' + line + str(self))
+                # NOTE: stdout should be empty
+                logger.warning("Unexpected stdout of dumpcap: '{}'. {}".format(line, str(self)))
 
         # Change state if process was not running in the time of poll() call in the beginning of this method.
         # NOTE: Process' poll() needs to be called in the beginning of this method and returncode checked in the end
