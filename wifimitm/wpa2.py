@@ -144,9 +144,9 @@ class Wpa2Cracker(object):
         for line in self.process_stdout_r:
             if 'KEY FOUND!' in line:
                 self.ap.save_psk_file(os.path.join(self.tmp_dir.name, 'psk.ascii'))
-                logger.debug('WepCracker found key!')
+                logger.debug('Wpa2Cracker found key!')
             if 'Passphrase not in dictionary' in line:
-                logger.info('Passphrase not in dictionary.')
+                logger.debug('Passphrase not in dictionary.')
                 raise PassphraseNotInDictionaryError()
 
         # check stderr
