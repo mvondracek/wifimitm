@@ -26,7 +26,7 @@ from .common import WirelessScanner
 from .impersonation import Wifiphisher
 from .model import WirelessAccessPoint
 from .model import WirelessInterface
-from .requirements import Requirements, RequirementError, UidRequirement
+from .requirements import Requirements, RequirementError, UidRequirement, CommandRequirement
 from .topology import ArpSpoofing
 from .wpa2 import verify_psk, PassphraseNotInAnyDictionaryError
 
@@ -93,7 +93,7 @@ def main():
         else:
             exitcode = ExitCode.EX_UNAVAILABLE
         print(e.requirement.msg, file=sys.stderr)
-        print('Requirements check failed.')
+        print('Requirements check failed.', file=sys.stderr)
         config.cleanup()
         return exitcode.value
 
@@ -307,14 +307,17 @@ class Config:
         # in provided args, for some reason.
         parsed_args = self.parser.parse_args(args=args)
 
-        # Check if provided interface name is recognized as wireless interface name.
-        for i in list_wifi_interfaces():
-            if i.name == parsed_args.interface.name:
-                break
-        else:
-            self.parser.error('argument interface: {} is not recognized as a valid wireless interface'.format(
-                parsed_args.interface.name)
-            )
+        if CommandRequirement('airmon-ng').check():
+            # if airmon-ng is available, check for wireless interface name can be performed here,
+            # if airmon-ng is NOT available, wifimitmcli will terminate upon requirements check after parsing args.
+            # Check if provided interface name is recognized as wireless interface name.
+            for i in list_wifi_interfaces():
+                if i.name == parsed_args.interface.name:
+                    break
+            else:
+                self.parser.error('argument interface: {} is not recognized as a valid wireless interface'.format(
+                    parsed_args.interface.name)
+                )
 
         # name to value conversion as noted in `self.init_parser`
         self.logging_level = self.LOGGING_LEVELS_DICT[parsed_args.logging_level]
