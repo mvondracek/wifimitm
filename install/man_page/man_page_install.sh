@@ -69,9 +69,21 @@ function main()
     check_task_result $? "${TASK}"
 
 
-    TASK="copy ${INSTALL_NAME}"
+    TASK="gzip man page"
+    announce_task "${TASK}"
+    gzip --keep ${SCRIPT_DIR}/wifimitmcli.1 
+    check_task_result $? "${TASK}"
+
+
+    TASK="copy man page"
     announce_task "${TASK}"
     cp --interactive ${SCRIPT_DIR}/wifimitmcli.1.gz ${INSTALL_DIR}/wifimitmcli.1.gz
+    check_task_result $? "${TASK}"
+
+
+    TASK="clean"
+    announce_task "${TASK}"
+    rm ${SCRIPT_DIR}/wifimitmcli.1.gz
     check_task_result $? "${TASK}"
 
 
