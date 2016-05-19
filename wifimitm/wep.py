@@ -223,9 +223,9 @@ class ArpReplay(object):
         )
 
     def __str__(self):
-        s = '<ArpReplay state: ' + str(self.state) +\
-            ', flags: ' + str(self.flags) +\
-            ', stats: ' + str(self.stats) +\
+        s = '<ArpReplay state: ' + str(self.state) + \
+            ', flags: ' + str(self.flags) + \
+            ', stats: ' + str(self.stats) + \
             '>'
         return s
 
@@ -601,9 +601,9 @@ class WepAttacker(object):
                         time.sleep(5)
                         fake_authentication = FakeAuthentication(interface=self.monitoring_interface, ap=self.ap)
                     time.sleep(2)
-                    if fake_authentication.state == FakeAuthentication.State.TERMINATED \
-                        and not (fake_authentication.flags['needs_prga_xor']
-                                 or fake_authentication.flags['deauthenticated']):
+                    if fake_authentication.state == FakeAuthentication.State.TERMINATED and\
+                            not (fake_authentication.flags['needs_prga_xor'] or
+                                 fake_authentication.flags['deauthenticated']):
                         logger.error('FakeAuthentication unexpectedly terminated. {}'.format(str(fake_authentication)))
                         raise subprocess.CalledProcessError(returncode=fake_authentication.poll(),
                                                             cmd=fake_authentication.args)
