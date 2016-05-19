@@ -10,6 +10,7 @@ Martin Vondracek
 
 import argparse
 import logging
+import subprocess
 import sys
 import tempfile
 import time
@@ -103,13 +104,19 @@ def main():
     interface = config.interface
 
     with tempfile.TemporaryDirectory() as tmp_dirname:
-        interface.start_monitor_mode()
+        try:
+            interface.start_monitor_mode()
 
-        scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=interface)
-        print('Scanning networks.')
-        scan = scanner.scan_once()
-
-        interface.stop_monitor_mode()
+            scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=interface)
+            print('Scanning networks.')
+            scan = scanner.scan_once()
+        except KeyboardInterrupt:
+            print('Stopping.')
+            config.cleanup()
+            return ExitCode.KEYBOARD_INTERRUPT.value
+        finally:
+            if interface.monitor_mode:
+                interface.stop_monitor_mode()
 
         target = None  # type: Optional[WirelessAccessPoint]
         for ap in scan:
