@@ -1,6 +1,7 @@
 # Automation of MitM Attack on WiFi Networks
 - Abstract
 - Instalation
+  - Hardware requirements
 - Usage
 - Bachelor Project Specification
 - Reference
@@ -61,13 +62,25 @@ Installation of all the requirements can be started by `requirements_install.sh`
 or `Makefile`. A usage of implemented `Makefile`, which can be used for a convenient installation,
 is shown in table below.
 
+A usage of *Makefile*
 |Command            |Description                                                     |
 |-------------------|----------------------------------------------------------------|
 |`make requirements`|Install requirements.                                           |
 |`make install`     |Install the *wifimitm* package and the *wifimitmcli* tool.      |
 |`make man`         |Install a manual page of *wifimitmcli*.                         |
 |`make`, `make all` |Install requirements, the package, the tool and the manual page.|
-A usage of *Makefile*
+
+### Hardware requirements
+Due to the nature of specific steps of the attack, a special hardware equipment is required.
+During the scanning and capturing of network traffic without being connected to the network,
+an attacking device needs a wireless network interface in monitor mode. For sending special
+forged packets, the wireless network interface also needs to be capable of packet injection.
+In order to be able to perform a phishing attack, a second wireless interface capable
+of master (AP) mode has to be available.
+
+The user can check whether his hardware is capable of packet injection using the
+*aireplay-ng* tool executed as `aireplay-ng --test <replay interface>`. Managing monitor mode
+of interface is possible with the *airmon-ng* tool.
 
 ## Usage
 After the installation, the CLI can be started via wifimitmcli. During *wifimitmcli’s* run,
@@ -84,6 +97,7 @@ tool. The synopsis of *wifimitmcli’s* arguments is specified as follows:
 wifimitmcli [-h] [-v] [-ll <level> ] [-p] [-cf FILE ] <ssid> <interface>
 ```
 
+Program arguments of *wifimitmcli*
 |Argument                                |Description                                                                     |
 |----------------------------------------|--------------------------------------------------------------------------------|
 |`-h`, `--help`                          |Show help message and exit.                                                     |
@@ -93,7 +107,6 @@ wifimitmcli [-h] [-v] [-ll <level> ] [-p] [-cf FILE ] <ssid> <interface>
 |`-cf FILE`, `--capture-file FILE`       |Capture network traffic to provided file.                                       |
 |`<ssid>`                                |Attack network with provided SSID.                                              |
 |`<interface>`                           |Use provided wireless network interface for attack.                             |
-Program arguments of *wifimitmcli*
 
 As seen from the synopsis shown above, `<ssid>` and `<interface>` arguments are
 mandatory to start *wifimitmcli*. In the case that provided arguments are not correct,
@@ -116,6 +129,7 @@ Upon termination of the *wifimitmcli* tool, appropriate exit code
 indicating the result is returned. Some of the implemented exit codes are inspired by
 sysexits[^sysexits] . Exit codes of the implemented automated tool are shown in table below.
 
+Exit codes of *wifimitmcli*
 |Value|Name                    |Description                                                    |
 |:---:|------------------------|---------------------------------------------------------------|
 |  0  |`EX_OK`                 |Program terminated successfully.                               |
@@ -127,7 +141,6 @@ sysexits[^sysexits] . Exit codes of the implemented automated tool are shown in 
 | 81  |`PHISHING_INCORRECT_PSK`|WPA/WPA2 passphrase obtained from phishing attack is incorrect.|
 | 82  |`SUBPROCESS_ERROR`      |Failure in subprocess occured.                                 |
 | 130 |`KEYBOARD_INTERRUPT`    |Program received SIGINT.                                       |
-Exit codes of *wifimitmcli*
 
 
 ## Bachelor Project Specification
