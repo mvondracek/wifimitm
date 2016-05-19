@@ -615,9 +615,7 @@ class WepAttacker(object):
                 while int(capturer.get_iv_sum()) < 100:
                     fake_authentication.update()
                     arp_replay.update_state()
-                    logger.debug('FakeAuthentication: ' + str(fake_authentication.state) + ', ' +
-                                 'flags: ' + str(fake_authentication.flags)
-                                 )
+                    logger.debug(str(fake_authentication))
                     logger.debug(arp_replay)
                     time.sleep(1)
 
@@ -629,10 +627,7 @@ class WepAttacker(object):
                     arp_replay.update_state()
                     cracker.update_state()
 
-                    logger.debug('FakeAuthentication: ' + str(fake_authentication.state) + ', ' +
-                                 'flags: ' + str(fake_authentication.flags)
-                                 )
-
+                    logger.debug(str(fake_authentication))
                     logger.debug(arp_replay)
 
                     logger.debug('WepCracker: ' + str(cracker.state))
