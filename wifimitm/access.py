@@ -192,9 +192,9 @@ def list_wifi_interfaces():
 
     process = subprocess.run('airmon-ng',
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             universal_newlines=True)
+                             universal_newlines=True,
+                             check=True)
 
-    process.check_returncode()
     # check stderr
     if process.stderr != '':
         # NOTE: stderr should be empty
