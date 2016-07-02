@@ -14,6 +14,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+from contextlib import contextmanager
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -222,7 +223,7 @@ class WirelessInterface(object):
                 self.driver,
                 self.chipset
             )
-        if self.monitor_mode:
+        if self.monitor_mode_active:
             s += ', monitor'
         s += '>'
         return s
@@ -243,7 +244,7 @@ class WirelessInterface(object):
         self.mac_address_spoofed = None
 
         self.channel = None
-        self.monitor_mode = False
+        self.monitor_mode_active = False
 
         # additional data
         self.driver = driver
@@ -320,13 +321,20 @@ class WirelessInterface(object):
         assert gateway, 'No default gateway available.'
         return gateway
 
+    @contextmanager
+    def monitor_mode(self, channel=None):
+        self.start_monitor_mode(channel=channel)
+        yield
+        if self.monitor_mode_active:
+            self.stop_monitor_mode()
+
     def start_monitor_mode(self, channel=None):
         """
         :param channel: monitor interface channel
         Raises:
             CalledProcessError if airmon-ng returncode is non-zero
         """
-        assert not self.monitor_mode, 'Interface already in monitor mode.'
+        assert not self.monitor_mode_active, 'Interface already in monitor mode.'
 
         cre_mon_enabled = re.compile(
             r'^\s+\(\S+ monitor mode vif enabled for \[\S+\](?P<name>\S+) on \[\S+\](?P<mon>\S+)\)$')
@@ -350,7 +358,7 @@ class WirelessInterface(object):
         for line in process.stdout.splitlines():
             m = cre_mon_enabled.match(line)
             if m:
-                self.monitor_mode = True
+                self.monitor_mode_active = True
                 self.name_monitor = m.group('mon')
                 break
 
@@ -359,7 +367,7 @@ class WirelessInterface(object):
         Raises:
             CalledProcessError if airmon-ng returncode is non-zero
         """
-        assert self.monitor_mode, 'Interface not in monitor mode.'
+        assert self.monitor_mode_active, 'Interface not in monitor mode.'
 
         cre_mon_disabled = re.compile(r'^\s+\(\S+ monitor mode vif disabled for \[\S+\](?P<mon>\S+)\)$')
 
@@ -379,7 +387,7 @@ class WirelessInterface(object):
         for line in process.stdout.splitlines():
             m = cre_mon_disabled.match(line)
             if m:
-                self.monitor_mode = False
+                self.monitor_mode_active = False
                 self.name_monitor = None
                 break
 

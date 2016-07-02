@@ -51,7 +51,7 @@ class WirelessUnlocker(object):
         :type force: bool
         :param force: attack even if network have already been cracked
         """
-        assert self.monitoring_interface.monitor_mode, 'Interface not in monitor mode.'
+        assert self.monitoring_interface.monitor_mode_active, 'Interface not in monitor mode.'
         assert self.ap.encryption in ['OPN', 'WEP', 'WPA', 'WPA2'], "Invalid encryption type '{}'. "\
             .format(self.ap.encryption)  # based on airodump-ng.c from aircrack-ng-1.2-rc4
 

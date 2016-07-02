@@ -103,18 +103,14 @@ def main():
         interface = config.interface
 
         with tempfile.TemporaryDirectory() as tmp_dirname:
-            try:
-                interface.start_monitor_mode()
-
-                scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=interface)
-                print('Scanning networks.')
-                scan = scanner.scan_once()
-            except KeyboardInterrupt:
-                print('Stopping.')
-                return ExitCode.KEYBOARD_INTERRUPT.value
-            finally:
-                if interface.monitor_mode:
-                    interface.stop_monitor_mode()
+            with interface.monitor_mode():
+                try:
+                    scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=interface)
+                    print('Scanning networks.')
+                    scan = scanner.scan_once()
+                except KeyboardInterrupt:
+                    print('Stopping.')
+                    return ExitCode.KEYBOARD_INTERRUPT.value
 
             target = None  # type: Optional[WirelessAccessPoint]
             for ap in scan:
@@ -127,19 +123,16 @@ def main():
             if target:
                 print("Attack data stored at '{}'.".format(target.dir_path))
 
-                try:
-                    interface.start_monitor_mode(target.channel)
-                    wireless_unlocker = WirelessUnlocker(ap=target, monitoring_interface=interface)
-                    print('Unlock targeted AP.')
-                    wireless_unlocker.start()
-                except PassphraseNotInAnyDictionaryError:
-                    print('Passphrase not in any dictionary.')
-                except KeyboardInterrupt:
-                    print('Stopping.')
-                    return ExitCode.KEYBOARD_INTERRUPT.value
-                finally:
-                    if interface.monitor_mode:
-                        interface.stop_monitor_mode()
+                with interface.monitor_mode(target.channel):
+                    try:
+                        wireless_unlocker = WirelessUnlocker(ap=target, monitoring_interface=interface)
+                        print('Unlock targeted AP.')
+                        wireless_unlocker.start()
+                    except PassphraseNotInAnyDictionaryError:
+                        print('Passphrase not in any dictionary.')
+                    except KeyboardInterrupt:
+                        print('Stopping.')
+                        return ExitCode.KEYBOARD_INTERRUPT.value
 
                 if not (target.is_cracked() or 'OPN' in target.encryption):
                     if config.phishing_enabled:
