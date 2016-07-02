@@ -77,6 +77,9 @@ def main():
     warnings.simplefilter('always', ResourceWarning)
 
     with Config() as config:
+        #
+        # Set up config
+        #
         config.parse_args()
         if config.logging_level:
             coloredlogs.install(level=config.logging_level)
@@ -85,6 +88,9 @@ def main():
         logger.info('Config parsed from args.')
         logger.debug(str(config))
 
+        #
+        # Check all requirements
+        #
         logger.info('Check all requirements.')
         try:
             Requirements.check_all()
@@ -103,6 +109,9 @@ def main():
         interface = config.interface
 
         with tempfile.TemporaryDirectory() as tmp_dirname:
+            #
+            # Scan for target AP
+            #
             with interface.monitor_mode():
                 try:
                     scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=interface)
@@ -121,8 +130,10 @@ def main():
                     break
 
             if target:
+                #
+                # Unlock target AP
+                #
                 print("Attack data stored at '{}'.".format(target.dir_path))
-
                 with interface.monitor_mode(target.channel):
                     try:
                         wireless_unlocker = WirelessUnlocker(ap=target, monitoring_interface=interface)
@@ -163,8 +174,9 @@ def main():
 
                 print('Targeted AP unlocked.')
 
-                # target unlocked, connect to the network
-
+                #
+                # Connect to the network
+                #
                 wireless_connecter = WirelessConnecter(interface=interface)
                 print('Connecting to the AP.')
                 try:
@@ -179,8 +191,9 @@ def main():
 
                 print('Connection successful.')
 
-                # change the network topology
-
+                #
+                # Change the network topology
+                #
                 arp_spoofing = ArpSpoofing(interface=interface)
                 try:
                     print('Changing topology of network.')
