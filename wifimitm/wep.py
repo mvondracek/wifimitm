@@ -76,7 +76,7 @@ class FakeAuthentication(UpdatableProcess):
         """Process have been terminated. By self.stop() call, on its own or by someone else."""
 
     def __init__(self, interface: WirelessInterface, ap: WirelessAccessPoint,
-                 reassoc_delay=30, keep_alive_delay=5, tries=3):
+                 reassoc_delay=30, keep_alive_delay=5):
         """
         Uses previously saved PRGA XOR, if available.
         :type interface: WirelessInterface
@@ -98,7 +98,6 @@ class FakeAuthentication(UpdatableProcess):
         cmd = ['aireplay-ng',
                '--fakeauth', str(reassoc_delay),
                '-q', str(keep_alive_delay),
-               '-T', str(tries),
                '-a', self.ap.bssid,
                '-h', self.interface.mac_address]
         if self.ap.prga_xor_path:
