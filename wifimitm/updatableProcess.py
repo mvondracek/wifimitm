@@ -148,11 +148,12 @@ class UpdatableProcess(ABC, subprocess.Popen):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
-        Wait for process and then do cleanup.
+        Stop the process and then do cleanup.
         :param exc_type: Exception type
         :param exc_val: Exception value
         :param exc_tb: Exception traceback information
         """
+        self.stop()
         # "...on exit, standard file descriptors are closed, and the process is waited for."
         # `subprocess — Subprocess management <https://docs.python.org/3/library/subprocess.html#subprocess.Popen>`_
         super().__exit__(exc_type, exc_val, exc_tb)
