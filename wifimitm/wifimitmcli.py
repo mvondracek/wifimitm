@@ -16,6 +16,7 @@ import tempfile
 import time
 import warnings
 from enum import Enum, unique
+from pprint import saferepr
 from typing import BinaryIO
 from typing import Optional, Sequence
 
@@ -73,6 +74,19 @@ class ExitCode(Enum):
 
 
 def main():
+    try:
+        return wifimitmcli()
+    except KeyboardInterrupt:
+        print('Stopping.')
+        return ExitCode.KEYBOARD_INTERRUPT.value
+    except subprocess.CalledProcessError as e:
+        msg = "Subprocess {} unexpectedly terminated with exit status {}.".format(e.cmd, e.returncode)
+        logger.error(msg + saferepr(e))
+        print(msg, file=sys.stderr)
+        return ExitCode.SUBPROCESS_ERROR.value
+
+
+def wifimitmcli():
     logging.captureWarnings(True)
     warnings.simplefilter('always', ResourceWarning)
 
@@ -113,13 +127,9 @@ def main():
             # Scan for target AP
             #
             with config.interface.monitor_mode():
-                try:
-                    scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=config.interface)
-                    print('Scanning networks.')
-                    scan = scanner.scan_once()
-                except KeyboardInterrupt:
-                    print('Stopping.')
-                    return ExitCode.KEYBOARD_INTERRUPT.value
+                scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=config.interface)
+                print('Scanning networks.')
+                scan = scanner.scan_once()
 
             target = None  # type: Optional[WirelessAccessPoint]
             for ap in scan:
@@ -141,9 +151,6 @@ def main():
                         wireless_unlocker.start()
                     except PassphraseNotInAnyDictionaryError:
                         print('Passphrase not in any dictionary.')
-                    except KeyboardInterrupt:
-                        print('Stopping.')
-                        return ExitCode.KEYBOARD_INTERRUPT.value
 
                 if not (target.is_cracked() or 'OPN' in target.encryption):
                     if config.phishing_enabled:
@@ -161,9 +168,6 @@ def main():
                                 if not verify_psk(target, wifiphisher.password):
                                     print('Caught password is not correct.', file=sys.stderr)
                                     return ExitCode.PHISHING_INCORRECT_PSK.value
-                        except KeyboardInterrupt:
-                            print('Stopping.')
-                            return ExitCode.KEYBOARD_INTERRUPT.value
                         except Wifiphisher.UnexpectedTerminationError:
                             print('Wifiphisher unexpectedly terminated.', file=sys.stderr)
                             return ExitCode.SUBPROCESS_ERROR.value
@@ -179,15 +183,7 @@ def main():
                 #
                 wireless_connecter = WirelessConnecter(interface=config.interface)
                 print('Connecting to the AP.')
-                try:
-                    wireless_connecter.connect(target)
-                except subprocess.CalledProcessError:
-                    logger.error('netctl unexpectedly terminated.')
-                    print('netctl unexpectedly terminated.', file=sys.stderr)
-                    return ExitCode.SUBPROCESS_ERROR.value
-                except KeyboardInterrupt:
-                    print('Stopping.')
-                    return ExitCode.KEYBOARD_INTERRUPT.value
+                wireless_connecter.connect(target)
 
                 print('Connection successful.')
 

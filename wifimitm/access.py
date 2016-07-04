@@ -160,7 +160,7 @@ class WirelessConnecter(object):
             CalledProcessError if netctl returncode is non-zero
         """
         cmd = ['netctl', 'start', self.profile]
-        process = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        process = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.check_returncode()
 
     def __stop_profile(self, force_profile_name=None):
@@ -174,7 +174,7 @@ class WirelessConnecter(object):
             cmd.append(force_profile_name)
         else:
             cmd.append(self.profile)
-        process = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        process = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.check_returncode()
         logger.debug('OK ' + ' '.join(cmd))
 
