@@ -95,7 +95,8 @@ class UpdatableProcess(ABC, subprocess.Popen):
             # write output to provided file
             self.stdout_w = stdout
 
-        super().__init__(args=args, stdout=self.stdout_w, stderr=self.stderr_w, universal_newlines=True, bufsize=1)
+        super().__init__(args=args, cwd=self.tmp_dir.name,
+                         stdout=self.stdout_w, stderr=self.stderr_w, universal_newlines=True, bufsize=1)
         self._popen_initialized = True
 
         # If subprocess.DEVNULL was passed to Popen above, finalizer doesn't need to close it.
