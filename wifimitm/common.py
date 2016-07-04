@@ -24,6 +24,10 @@ __email__ = 'xvondr20@stud.fit.vutbr.cz'
 logger = logging.getLogger(__name__)
 
 
+class WifimitmError(Exception):
+    pass
+
+
 def csv_row_station_bssid(row):
     """
     Provide associated bssid of given station.

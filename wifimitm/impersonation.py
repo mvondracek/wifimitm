@@ -12,6 +12,7 @@ import re
 from enum import Enum, unique
 from typing import Optional, Dict
 
+from wifimitm.common import WifimitmError
 from wifimitm.updatableProcess import UpdatableProcess
 from .model import WirelessInterface, WirelessAccessPoint
 
@@ -112,7 +113,7 @@ class Wifiphisher(UpdatableProcess):
                 client_id = parts[4]
             return cls(expiration, mac_address, ip_address, hostname, client_id)
 
-    class UnexpectedTerminationError(Exception):
+    class UnexpectedTerminationError(WifimitmError):
         pass
 
     def __init__(self,

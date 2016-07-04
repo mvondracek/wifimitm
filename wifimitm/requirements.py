@@ -13,6 +13,8 @@ import shutil
 from abc import ABC, abstractmethod
 from typing import List
 
+from wifimitm.common import WifimitmError
+
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
@@ -41,7 +43,7 @@ class Requirement(ABC):
         """
 
 
-class RequirementError(Exception):
+class RequirementError(WifimitmError):
     def __init__(self, requirement: Requirement):
         """
         :type requirement: Requirement

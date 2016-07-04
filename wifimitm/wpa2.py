@@ -35,7 +35,7 @@ from typing import List, TextIO
 import pkg_resources
 
 from .model import WirelessAccessPoint, WirelessInterface
-from .common import WirelessCapturer, deauthenticate
+from .common import WirelessCapturer, deauthenticate, WifimitmError
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -43,7 +43,7 @@ __email__ = 'xvondr20@stud.fit.vutbr.cz'
 logger = logging.getLogger(__name__)
 
 
-class Wpa2Error(Exception):
+class Wpa2Error(WifimitmError):
     pass
 
 

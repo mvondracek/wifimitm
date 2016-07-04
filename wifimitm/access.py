@@ -13,6 +13,7 @@ import re
 import subprocess
 from contextlib import contextmanager
 
+from wifimitm.common import WifimitmError
 from .model import WirelessInterface, WirelessAccessPoint
 from .wep import WepAttacker
 from .wpa2 import Wpa2Attacker
@@ -23,7 +24,7 @@ __email__ = 'xvondr20@stud.fit.vutbr.cz'
 logger = logging.getLogger(__name__)
 
 
-class NotCrackedError(Exception):
+class NotCrackedError(WifimitmError):
     pass
 
 
