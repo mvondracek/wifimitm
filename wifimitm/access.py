@@ -11,6 +11,7 @@ import logging
 import os
 import re
 import subprocess
+from contextlib import contextmanager
 
 from .model import WirelessInterface, WirelessAccessPoint
 from .wep import WepAttacker
@@ -111,6 +112,12 @@ class WirelessConnecter(object):
         self.__delete_profile()
         logger.info('Disconnected from ' + self.ap.essid)
         self.ap = None
+
+    @contextmanager
+    def connection(self, ap: WirelessAccessPoint):
+        self.connect(ap=ap)
+        yield
+        self.disconnect()
 
     def __create_profile(self):
         """

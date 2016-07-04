@@ -181,40 +181,37 @@ def wifimitmcli():
                 #
                 # Connect to the network
                 #
-                wireless_connecter = WirelessConnecter(interface=config.interface)
                 print('Connecting to the AP.')
-                wireless_connecter.connect(target)
+                with WirelessConnecter(interface=config.interface).connection(target):
+                    print('Connection successful.')
 
-                print('Connection successful.')
-
-                #
-                # Change the network topology
-                #
-                with ArpSpoofing(interface=config.interface) as arp_spoofing:
-                    try:
-                        print('Changing topology of network.')
-                        print('Running until KeyboardInterrupt.')
-
-                        #
-                        # Capture network traffic, if capture file was specified
-                        #
-                        dumpcap = None
-                        if config.capture_file:
-                            dumpcap = Dumpcap(interface=config.interface, capture_file=config.capture_file)
-                            print('Capturing network traffic.')
+                    #
+                    # Change the network topology
+                    #
+                    with ArpSpoofing(interface=config.interface) as arp_spoofing:
                         try:
-                            while True:
-                                arp_spoofing.update(print_stream=sys.stdout)
+                            print('Changing topology of network.')
+                            print('Running until KeyboardInterrupt.')
+
+                            #
+                            # Capture network traffic, if capture file was specified
+                            #
+                            dumpcap = None
+                            if config.capture_file:
+                                dumpcap = Dumpcap(interface=config.interface, capture_file=config.capture_file)
+                                print('Capturing network traffic.')
+                            try:
+                                while True:
+                                    arp_spoofing.update(print_stream=sys.stdout)
+                                    if dumpcap:
+                                        dumpcap.update()
+                                    time.sleep(1)
+                                    # loop until KeyboardInterrupt
+                            finally:
                                 if dumpcap:
-                                    dumpcap.update()
-                                time.sleep(1)
-                                # loop until KeyboardInterrupt
-                        finally:
-                            if dumpcap:
-                                dumpcap.cleanup()
-                    except KeyboardInterrupt:
-                        print('Stopping.')
-                wireless_connecter.disconnect()
+                                    dumpcap.cleanup()
+                        except KeyboardInterrupt:
+                            print('Stopping.')
             else:
                 print('Target AP not found during scan. Please make sure that you are within the signal reach of'
                       ' the specified AP and try again.', file=sys.stderr)
