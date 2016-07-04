@@ -80,9 +80,8 @@ def main():
         print('Stopping.')
         return ExitCode.KEYBOARD_INTERRUPT.value
     except subprocess.CalledProcessError as e:
-        msg = "Subprocess {} unexpectedly terminated with exit status {}.".format(e.cmd, e.returncode)
-        logger.error(msg + saferepr(e))
-        print(msg, file=sys.stderr)
+        logger.error(str(e) + ' ' + saferepr(e))
+        print(str(e), file=sys.stderr)
         return ExitCode.SUBPROCESS_ERROR.value
 
 
