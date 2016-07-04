@@ -344,8 +344,7 @@ class WirelessCapturer(object):
             raise FileNotFoundError
         hs_path = os.path.join(self.capturing_dir.name, 'WPA_handshake.cap')
         cmd = ['wpaclean', hs_path, self.capturing_cap_path]
-        process = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        process.check_returncode()
+        process = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
         self.wpa_handshake_cap_path = hs_path
 
 
