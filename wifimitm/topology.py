@@ -8,11 +8,10 @@ Martin Vondracek
 2016
 """
 import logging
-import subprocess
-import tempfile
-import time
 from enum import Enum, unique
+from typing import Optional, TextIO
 
+from wifimitm.updatableProcess import UpdatableProcess
 from .model import WirelessInterface
 
 __author__ = 'Martin Vondracek'
@@ -21,7 +20,7 @@ __email__ = 'xvondr20@stud.fit.vutbr.cz'
 logger = logging.getLogger(__name__)
 
 
-class ArpSpoofing(object):
+class ArpSpoofing(UpdatableProcess):
     """
     "MITMf aims to provide a one-stop-shop for Man-In-The-Middle and network attacks while updating and improving
     existing attacks and techniques.
@@ -36,117 +35,69 @@ class ArpSpoofing(object):
         """
         MITMf process states.
         """
-        ok = 0
-        new = 1  # just started
-        terminated = 100
+        SPOOFING = 0
+        """ARP Spoofing to act as a default gateway for the local network."""
+        STARTED = 2
+        """Process just started."""
+        TERMINATED = 100
+        """Process have been terminated. By self.stop() call, on its own or by someone else."""
 
     def __init__(self, interface: WirelessInterface):
         """
         :type interface: WirelessInterface
         :param interface: wireless interface for spoofing
         """
-        self.process = None
-        self.state = None
-
-        # process' stdout, stderr for its writing
-        self.process_stdout_w = None
-        self.process_stderr_w = None
-        # process' stdout, stderr for reading
-        self.process_stdout_r = None
-        self.process_stderr_r = None
+        self.state = self.State.STARTED
 
         self.interface = interface  # type: WirelessInterface
-        self.spoof_started_found = False
-
-    def start(self):
-        self.state = self.__class__.State.new
-
-        # temp files (write, read) for stdout and stderr
-        self.process_stdout_w = tempfile.NamedTemporaryFile(prefix='ArpSpoofing-stdout')
-        self.process_stdout_r = open(self.process_stdout_w.name, 'r')
-
-        self.process_stderr_w = tempfile.NamedTemporaryFile(prefix='ArpSpoofing-stderr')
-        self.process_stderr_r = open(self.process_stderr_w.name, 'r')
 
         cmd = ['mitmf',
                '-i', self.interface.name,
                '--spoof', '--arp',
                '--gateway', self.interface.gateway]
-        self.process = subprocess.Popen(cmd,
-                                        stdout=self.process_stdout_w, stderr=self.process_stderr_w,
-                                        universal_newlines=True)
-        logger.debug('ArpSpoofing started; stdout @ ' + self.process_stdout_w.name +
-                     ', stderr @ ' + self.process_stderr_w.name)
+        super().__init__(cmd)
 
-    def update_state(self):
+    def __str__(self):
+        return '<{!s} state={!s}>'.format(
+            type(self).__name__, self.state)
+
+    def update(self, print_stream: Optional[TextIO]=None, print_prefix: Optional[str]='MITMf 1> '):
         """
         Update state of running process from process' feedback.
         Read new output from stdout and stderr, check if process is alive.
+        :type print_stream: Optional[TextIO]
+        :param print_stream: Print information about HTTP traffic from MITMf's stdout to provided stream.
+        :type print_prefix: Optional[str]
+        :param print_prefix: Prepend provided string in the beginning of every line printed to `print_stream`.
         """
-        # is process running?
-        if self.process.poll() is not None:
-            self.state = self.__class__.State.terminated
+        super().update()
+        # Is process running? State would be changed after reading stdout and stderr.
+        self.poll()
 
         # check every added line in stdout
-        for line in self.process_stdout_r:
-            if not self.spoof_started_found and line == '|_ SMB server online\n':
-                self.spoof_started_found = True
-            elif self.spoof_started_found and line != '\n':
-                print('MITMf 1> ' + line, end='')
+        if self.stdout_r and not self.stdout_r.closed:
+            for line in self.stdout_r:
+                if self.state == self.State.STARTED and line == '|_ SMB server online\n':
+                    self.state = self.State.SPOOFING
 
-        # check every added line in stdout
-        for line in self.process_stderr_r:
-            if ' * Running on http://127.0.0.1:9999/ (Press CTRL+C to quit)\n' == line:
-                continue
-            print('MITMf 2> ' + line, end='')
+                elif self.state == self.State.SPOOFING and line != '\n':
+                    if print_stream:
+                        print(print_prefix + line, end='', file=print_stream)
 
-    def stop(self):
-        """
-        Stop running process.
-        If the process is stopped or already finished, exitcode is returned.
-        In the case that there was not any process, nothing happens.
-        :return:
-        """
-        if self.process:
-            exitcode = self.process.poll()
-            if exitcode is None:
-                self.process.terminate()
-                for t in range(10):
-                    exitcode = self.process.poll()
-                    if exitcode:
-                        break
-                    logger.debug('waiting for ArpSpoofing to terminate (' + str(t) + '/20)')
-                    time.sleep(1)
-                self.process.kill()
-                exitcode = self.process.poll()
-                logger.debug('ArpSpoofing killed')
+        # check every added line in stderr
+        if self.stderr_r and not self.stderr_r.closed:
+            for line in self.stderr_r:
+                if ' * Running on http://127.0.0.1:9999/ (Press CTRL+C to quit)\n' == line:
+                    continue
+                # NOTE: stderr should be now empty
+                logger.warning("Unexpected stderr of 'mitmf': '{}'. {}".format(line, str(self)))
 
-            self.process = None
-            self.state = self.__class__.State.terminated
-            return exitcode
-
-    def clean(self):
-        """
-        Clean after running process.
-        Running process is stopped, temp files are closed and deleted,
-        :return:
-        """
-        logger.debug('ArpSpoofing clean')
-        # if the process is running, stop it and then clean
-        if self.process:
-            self.stop()
-        # close opened files
-        self.process_stdout_r.close()
-        self.process_stdout_r = None
-
-        self.process_stdout_w.close()
-        self.process_stdout_w = None
-
-        self.process_stderr_r.close()
-        self.process_stderr_r = None
-
-        self.process_stderr_w.close()
-        self.process_stderr_w = None
-
-        # remove state
-        self.state = None
+        # Change state if process was not running in the time of poll() call in the beginning of this method.
+        # NOTE: Process' poll() needs to be called in the beginning of this method and returncode checked in the end
+        # to ensure all feedback (stdout and stderr) is read and states are changed accordingly.
+        # If the process exited, its state is not changed immediately. All available feedback is read and then
+        # the state is changed to self.State.TERMINATED. State, flags,stats and others can be changed during reading
+        # the available feedback even if the process exited. But self.State.TERMINATED is assigned here if
+        # the process exited.
+        if self.returncode is not None:
+            self.state = self.State.TERMINATED

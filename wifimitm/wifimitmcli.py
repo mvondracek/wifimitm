@@ -194,28 +194,30 @@ def main():
                 #
                 # Change the network topology
                 #
-                arp_spoofing = ArpSpoofing(interface=config.interface)
-                try:
-                    print('Changing topology of network.')
-                    arp_spoofing.start()
-                    print('Running until KeyboardInterrupt.')
-                    dumpcap = None
-                    if config.capture_file:
-                        dumpcap = Dumpcap(interface=config.interface, capture_file=config.capture_file)
-                        print('Capturing network traffic.')
+                with ArpSpoofing(interface=config.interface) as arp_spoofing:
                     try:
-                        while True:
-                            arp_spoofing.update_state()
+                        print('Changing topology of network.')
+                        print('Running until KeyboardInterrupt.')
+
+                        #
+                        # Capture network traffic, if capture file was specified
+                        #
+                        dumpcap = None
+                        if config.capture_file:
+                            dumpcap = Dumpcap(interface=config.interface, capture_file=config.capture_file)
+                            print('Capturing network traffic.')
+                        try:
+                            while True:
+                                arp_spoofing.update(print_stream=sys.stdout)
+                                if dumpcap:
+                                    dumpcap.update()
+                                time.sleep(1)
+                                # loop until KeyboardInterrupt
+                        finally:
                             if dumpcap:
-                                dumpcap.update()
-                            time.sleep(1)
-                    finally:
-                        if dumpcap:
-                            dumpcap.cleanup()
-                except KeyboardInterrupt:
-                    print('Stopping.')
-                arp_spoofing.stop()
-                arp_spoofing.clean()
+                                dumpcap.cleanup()
+                    except KeyboardInterrupt:
+                        print('Stopping.')
                 wireless_connecter.disconnect()
             else:
                 print('Target AP not found during scan. Please make sure that you are within the signal reach of'
