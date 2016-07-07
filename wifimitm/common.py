@@ -334,5 +334,5 @@ def deauthenticate(interface: WirelessInterface, station, count=10):
            '-c', station.mac_address,
            interface.name]
 
-    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
     logger.debug('deauth sent to ' + station.mac_address)
