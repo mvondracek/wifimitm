@@ -26,7 +26,6 @@ import logging
 import os
 import pipes
 import re
-import subprocess
 import tempfile
 import time
 from enum import Enum, unique
@@ -35,6 +34,7 @@ from typing import List, TextIO
 import pkg_resources
 
 from .model import WirelessAccessPoint, WirelessInterface
+from .updatableProcess import UpdatableProcess
 from .common import WirelessCapturer, deauthenticate, WifimitmError
 
 __author__ = 'Martin Vondracek'
@@ -55,7 +55,7 @@ class PassphraseNotInAnyDictionaryError(Wpa2Error):
     pass
 
 
-class Wpa2Cracker(object):
+class Wpa2Cracker(UpdatableProcess):
     """
     "WPA/WPA2 supports many types of authentication beyond pre-shared keys. aircrack-ng can ONLY crack pre-shared keys.
     So make sure airodump-ng shows the network as having the authentication type of PSK, otherwise, don't bother trying
@@ -76,40 +76,22 @@ class Wpa2Cracker(object):
         """
         Wpa2Cracker process states.
         """
-        ok = 0  # cracking
-        new = 1  # just started
-        terminated = 100
+        CRACKING = 0
+        """Cracking or waiting for more IVs."""
+        STARTED = 2
+        """Process just started."""
+        TERMINATED = 100
+        """Process have been terminated. By self.stop() call, on its own or by someone else."""
 
     def __init__(self, ap, dictionary):
         if not ap.wpa_handshake_cap_path:
             raise ValueError
 
+        self.state = self.State.STARTED
+
         self.ap = ap
-
-        self.process = None
-        self.state = None
-        self.tmp_dir = None
-
-        # process' stdout, stderr for its writing
-        self.process_stdout_w = None
-        self.process_stderr_w = None
-        # process' stdout, stderr for reading
-        self.process_stdout_r = None
-        self.process_stderr_r = None
-
         self.dictionary = dictionary
         logger.debug("dictionary '{}'".format(str(self.dictionary)))
-
-    def start(self):
-        self.state = self.__class__.State.new
-        self.tmp_dir = tempfile.TemporaryDirectory()
-
-        # temp files (write, read) for stdout and stderr
-        self.process_stdout_w = tempfile.NamedTemporaryFile(prefix='wpa2crack-stdout', dir=self.tmp_dir.name)
-        self.process_stdout_r = open(self.process_stdout_w.name, 'r')
-
-        self.process_stderr_w = tempfile.NamedTemporaryFile(prefix='wpa2crack-stderr', dir=self.tmp_dir.name)
-        self.process_stderr_r = open(self.process_stderr_w.name, 'r')
 
         cmd = ['aircrack-ng',
                '-a', '2',
@@ -118,17 +100,14 @@ class Wpa2Cracker(object):
                '-w', '-',  # dictionary is provided to stdin
                '-l', 'psk.ascii',  # Write the key into a file.
                self.ap.wpa_handshake_cap_path]
-        self.process = subprocess.Popen(cmd, cwd=self.tmp_dir.name,
-                                        stdin=self.dictionary,
-                                        stdout=self.process_stdout_w, stderr=self.process_stderr_w,
-                                        universal_newlines=True)
         # NOTE: Aircrack-ng does not flush when stdout is redirected to file and -q is set.
-        self.state = self.__class__.State.ok
-        logger.debug('Wpa2Cracker started; cwd=' + self.tmp_dir.name + ', ' +
-                     'stdout @ ' + self.process_stdout_w.name +
-                     ', stderr @ ' + self.process_stderr_w.name)
+        super().__init__(cmd, stdin=self.dictionary)  # start process
 
-    def update_state(self):
+    def __str__(self):
+        return '<{!s} state={!s}>'.format(
+            type(self).__name__, self.state)
+
+    def update(self):
         """
         Update state of running process from process' feedback.
         Read new output from stdout and stderr, check if process is alive.
@@ -136,76 +115,40 @@ class Wpa2Cracker(object):
         in the moment of termination of aircrack-ng.
         :raises PassphraseNotInDictionaryError: If passphrase was not found in provided dictionary.
         """
-        # is process running?
-        if self.process.poll() is not None:
-            self.state = self.__class__.State.terminated
+        super().update()
+        # Is process running? State would be changed after reading stdout and stderr.
+        self.poll()
 
         # check every added line in stdout
-        for line in self.process_stdout_r:
-            if 'KEY FOUND!' in line:
-                self.ap.save_psk_file(os.path.join(self.tmp_dir.name, 'psk.ascii'))
-                logger.debug('Wpa2Cracker found key!')
-            if 'Passphrase not in dictionary' in line:
-                logger.debug('Passphrase not in dictionary.')
-                raise PassphraseNotInDictionaryError()
+        if self.stdout_r and not self.stdout_r.closed:
+            for line in self.stdout_r:
+                if 'Failed. Next try with' in line:
+                    if self.state != self.State.TERMINATED:
+                        self.state = self.State.CRACKING
+                if 'KEY FOUND!' in line:
+                    if self.state != self.State.TERMINATED:
+                        self.state = self.State.CRACKING
+                    self.ap.save_psk_file(os.path.join(self.tmp_dir.name, 'psk.ascii'))
+                    logger.debug('Wpa2Cracker found key!')
+                if 'Passphrase not in dictionary' in line:
+                    logger.debug('Passphrase not in dictionary.')
+                    raise PassphraseNotInDictionaryError()
 
         # check stderr
-        if self.process_stderr_r and not self.process_stderr_r.closed:
-            for line in self.process_stderr_r:  # type: str
+        if self.stderr_r and not self.stderr_r.closed:
+            for line in self.stderr_r:  # type: str
                 # NOTE: stderr should be empty
                 logger.warning("Unexpected stderr of 'aircrack-ng': '{}'. {}".format(line, str(self)))
 
-    def stop(self):
-        """
-        Stop running process.
-        If the process is stopped or already finished, exitcode is returned.
-        In the case that there was not any process, nothing happens.
-        :return:
-        """
-        if self.process:
-            exitcode = self.process.poll()
-            if exitcode is None:
-                self.process.terminate()
-                time.sleep(1)
-                self.process.kill()
-                exitcode = self.process.poll()
-                logger.debug('Wpa2Cracker killed')
-
-            self.process = None
-            self.state = self.__class__.State.terminated
-            return exitcode
-
-    def clean(self):
-        """
-        Clean after running process.
-        Running process is stopped, temp files are closed and deleted,
-        :return:
-        """
-        logger.debug('Wpa2Cracker clean')
-        # if the process is running, stop it and then clean
-        if self.process:
-            self.stop()
-        # close opened files
-        self.process_stdout_r.close()
-        self.process_stdout_r = None
-
-        self.process_stdout_w.close()
-        self.process_stdout_w = None
-
-        self.process_stderr_r.close()
-        self.process_stderr_r = None
-
-        self.process_stderr_w.close()
-        self.process_stderr_w = None
-
-        self.dictionary.close()
-
-        # remove tmp
-        self.tmp_dir.cleanup()
-        self.tmp_dir = None
-
-        # remove state
-        self.state = None
+        # Change state if process was not running in the time of poll() call in the beginning of this method.
+        # NOTE: Process' poll() needs to be called in the beginning of this method and returncode checked in the end
+        # to ensure all feedback (stdout and stderr) is read and states are changed accordingly.
+        # If the process exited, its state is not changed immediately. All available feedback is read and then
+        # the state is changed to self.State.TERMINATED. State, flags,stats and others can be changed during reading
+        # the available feedback even if the process exited. But self.State.TERMINATED is assigned here if
+        # the process exited.
+        if self.returncode is not None:
+            self.state = self.State.TERMINATED
 
 
 def get_personalized_dictionaries(target: WirelessAccessPoint) -> List[TextIO]:
@@ -289,17 +232,14 @@ class Wpa2Attacker(object):
 
         for idx, dictionary in enumerate(dictionaries):
             try:
-                cracker = Wpa2Cracker(ap=self.ap, dictionary=dictionary)
-                cracker.start()
-                while not self.ap.is_cracked():
-                    cracker.update_state()
-                    logger.debug('Wpa2Cracker: ' + str(cracker.state))
-                    time.sleep(5)
+                with Wpa2Cracker(ap=self.ap, dictionary=dictionary)as cracker:
+                    while not self.ap.is_cracked():
+                        cracker.update()
+                        logger.debug(cracker)
+                        time.sleep(5)
             except PassphraseNotInDictionaryError:
                 logger.info('Passphrase not in dictionary. ({}/{})'.format(idx + 1, len(dictionaries)))
             finally:
-                cracker.stop()
-                cracker.clean()
                 dictionary.close()
 
             if self.ap.is_cracked():
@@ -316,26 +256,21 @@ class Wpa2Attacker(object):
 
 
 def verify_psk(ap: WirelessAccessPoint, psk: str):
-    dictionary_w = tempfile.NamedTemporaryFile(mode='w', prefix='dictionary')
-    dictionary_w.write(psk)
-    dictionary_w.flush()
-    dictionary_r = open(dictionary_w.name, 'r')
+    with tempfile.NamedTemporaryFile(mode='w', prefix='dictionary') as dictionary_w:
+        dictionary_w.write(psk)
+        dictionary_w.flush()
 
-    cracker = Wpa2Cracker(ap=ap, dictionary=dictionary_r)
-    try:
-        cracker.start()
-        while not ap.is_cracked():
-            cracker.update_state()
-            logger.debug('Wpa2Cracker: ' + str(cracker.state))
-            time.sleep(1)
-    except PassphraseNotInDictionaryError:
-        result = False
-    else:
-        result = True
-        logger.info('Verified ' + str(ap))
-    finally:
-        cracker.stop()
-        cracker.clean()
-        dictionary_r.close()
-        dictionary_w.close()
+        with open(dictionary_w.name, 'r') as dictionary_r:
+            with Wpa2Cracker(ap=ap, dictionary=dictionary_r) as cracker:
+
+                try:
+                    while not ap.is_cracked():
+                        cracker.update()
+                        logger.debug(cracker)
+                        time.sleep(1)
+                except PassphraseNotInDictionaryError:
+                    result = False
+                else:
+                    result = True
+                    logger.info('Verified ' + str(ap))
     return result
