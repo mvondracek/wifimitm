@@ -87,7 +87,6 @@ class FakeAuthentication(UpdatableProcess):
 
         :param reassoc_delay: reassociation timing in seconds
         :param keep_alive_delay: time between keep-alive packets
-        :param tries: Exit if fake authentication fails 'n' time(s)
         """
         self.state = self.State.STARTED
         self.flags = self.__initial_flags()
