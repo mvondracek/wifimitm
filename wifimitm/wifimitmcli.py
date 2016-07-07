@@ -126,9 +126,10 @@ def wifimitmcli():
             # Scan for target AP
             #
             with config.interface.monitor_mode():
-                scanner = WirelessScanner(tmp_dir=tmp_dirname, interface=config.interface)
-                print('Scanning networks.')
-                scan = scanner.scan_once()
+                with WirelessScanner(interface=config.interface, write_interval=2) as scanner:
+                    print('Scanning networks.')
+                    time.sleep(6)
+                    scan = scanner.get_scan_result()
 
             target = None  # type: Optional[WirelessAccessPoint]
             for ap in scan:

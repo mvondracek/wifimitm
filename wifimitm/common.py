@@ -104,60 +104,78 @@ def csv_to_result(csv_path) -> List[WirelessAccessPoint]:
     return scan_result
 
 
-class WirelessScanner(object):
-    def __init__(self, tmp_dir, interface: WirelessInterface):
+class WirelessScanner(UpdatableProcess):
+    @unique
+    class State(Enum):
+        """
+        WirelessScanner process states.
+        """
+        SCANNING = 0
+        """SCANNING wireless traffic."""
+        STARTED = 2
+        """Process just started."""
+        TERMINATED = 100
+        """Process have been terminated. By self.stop() call, on its own or by someone else."""
+
+    def __init__(self, interface: WirelessInterface, write_interval=5):
         """
         :type interface: WirelessInterface
         :param interface: wireless interface for scanning
         """
-        self.tmp_dir = tmp_dir
+        self.state = self.State.STARTED
+
         self.interface = interface  # type: WirelessInterface
 
-        self.process = None
-        self.scanning_dir = None
-        self.scanning_csv_path = None
-
-    def start(self, write_interval=5):
-        self.scanning_dir = tempfile.TemporaryDirectory(prefix='WirelessScanner-', dir=self.tmp_dir)
         cmd = ['airodump-ng',
-               '-w', os.path.join(self.scanning_dir.name, 'scan'),
+               '-w', 'scan',
                '--output-format', 'csv',
                '--write-interval', str(write_interval),
                '-a',
                self.interface.name]
-        self.process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        self.scanning_csv_path = os.path.join(self.scanning_dir.name, 'scan-01.csv')
-        logger.debug('scan started')
+        super().__init__(cmd, stdout=False, stderr=False)  # start process
 
-    def stop(self):
-        if self.process:
-            exitcode = self.process.poll()
-            if exitcode is None:
-                self.process.terminate()
-                time.sleep(1)
-                self.process.kill()
-                exitcode = self.process.poll()
-                logger.debug('scan killed')
+        self.scanning_csv_path = os.path.join(self.tmp_dir.name, 'scan-01.csv')
 
-            self.process = None
-            self.scanning_dir.cleanup()
-            self.scanning_dir = None
-            self.scanning_csv_path = None
-            return exitcode
+    def __str__(self):
+        return '<{!s} state={!s}>'.format(
+            type(self).__name__, self.state)
 
-    def scan_once(self):
+    def update(self):
         """
-        Scans once for wireless APs and clients.
-        Scanning is done by airodump-ng for 6 seconds. After scanning, airodump-ng is terminated.
+        Update state of running process from process' feedback.
+        Read new output from stdout and stderr, check if process is alive. Set appropriate flags.
+        """
+        super().update()
+        # Is process running? State would be changed after reading stdout and stderr.
+        self.poll()
+
+        if os.path.isfile(self.scanning_csv_path):
+            self.state = self.State.SCANNING
+
+        # Change state if process was not running in the time of poll() call in the beginning of this method.
+        # NOTE: Process' poll() needs to be called in the beginning of this method and returncode checked in the end
+        # to ensure all feedback (stdout and stderr) is read and states are changed accordingly.
+        # If the process exited, its state is not changed immediately. All available feedback is read and then
+        # the state is changed to self.State.TERMINATED. State, flags,stats and others can be changed during reading
+        # the available feedback even if the process exited. But self.State.TERMINATED is assigned here if
+        # the process exited.
+        if self.returncode is not None:
+            self.state = self.State.TERMINATED
+
+    def cleanup(self, stop=True):
+        """
+        Cleanup after running process.
+        Temp files are closed and deleted,
+        :param stop: Stop process if it's running.
+        """
+        super().cleanup(stop=stop)
+        self.scanning_csv_path = None  # file was deleted with tmp_dir
+
+    def get_scan_result(self) -> List[WirelessAccessPoint]:
+        """
         :return: List containing WirelessAccessPoint objects with associated WirelessStation objects.
+        :rtype List[WirelessAccessPoint]
         """
-        self.start(write_interval=2)
-        time.sleep(6)
-        result = csv_to_result(self.scanning_csv_path)
-        self.stop()
-        return result
-
-    def get_scan_result(self):
         while not self.has_csv():
             logger.debug('WirelessScanner polling result')
             time.sleep(1)
