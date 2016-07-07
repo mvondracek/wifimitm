@@ -90,10 +90,10 @@ class UpdatableProcess(ABC, subprocess.Popen):
             self.stderr_r = open(os.path.join(self.tmp_dir.name, 'stderr.txt'), mode='rt', buffering=1)
         elif stdout is False:
             # do NOT capture output
-            self.stdout_w = subprocess.DEVNULL
+            self.stderr_w = subprocess.DEVNULL
         else:
             # write output to provided file
-            self.stdout_w = stdout
+            self.stderr_w = stdout
 
         super().__init__(args=args, cwd=self.tmp_dir.name,
                          stdout=self.stdout_w, stderr=self.stderr_w, universal_newlines=True, bufsize=1)
@@ -111,7 +111,10 @@ class UpdatableProcess(ABC, subprocess.Popen):
         self._finalizer_initialized = True
 
         logger.debug('{!s} started; stdout @ {!s}, stderr @ {!s}'.format(
-            type(self).__name__, self.stdout_w.name, self.stderr_w.name))
+            type(self).__name__,
+            self.stdout_w.name if self.stdout_w else None,
+            self.stderr_w.name if self.stderr_w else None)
+        )
 
     @abstractmethod
     def update(self):
