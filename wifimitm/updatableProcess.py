@@ -55,11 +55,15 @@ class UpdatableProcess(ABC, subprocess.Popen):
     _finalizer_initialized = False  # important for cleanup called from destructor, see `self.__del__()`
 
     def __init__(self, args: Sequence[str],
+                 stdin: Optional[IO]=None,
                  stdout: Union[IO, bool]=True, stderr: Union[IO, bool]=True):
         """
         Execute a child program in a new process.
         :type args: Sequence[str]
         :param args: sequence of program arguments
+
+        :type stdin: Optional[IO]
+        :param stdin: Write file to process' stdin.
 
         :type stdout: Union[IO, bool]
         :param stdout: Write stdout to provided file instead of writing it to file in /tmp. If False is provided, stdout
@@ -96,7 +100,7 @@ class UpdatableProcess(ABC, subprocess.Popen):
             self.stderr_w = stdout
 
         super().__init__(args=args, cwd=self.tmp_dir.name,
-                         stdout=self.stdout_w, stderr=self.stderr_w, universal_newlines=True, bufsize=1)
+                         stdin=stdin, stdout=self.stdout_w, stderr=self.stderr_w, universal_newlines=True, bufsize=1)
         self._popen_initialized = True
 
         # If subprocess.DEVNULL was passed to Popen above, finalizer doesn't need to close it.
