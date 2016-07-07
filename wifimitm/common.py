@@ -288,7 +288,11 @@ class WirelessCapturer(UpdatableProcess):
         super().cleanup(stop=stop)
         self.wpa_handshake_cap_path = None  # file was deleted with tmp_dir
 
-    def get_capture_result(self):
+    def get_capture_result(self) -> List[WirelessAccessPoint]:
+        """
+        :return: List containing WirelessAccessPoint objects with associated WirelessStation objects.
+        :rtype List[WirelessAccessPoint]
+        """
         while not self.has_capture_csv():
             logger.debug('WirelessCapturer polling result')
             time.sleep(1)
