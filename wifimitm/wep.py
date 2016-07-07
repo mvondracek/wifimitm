@@ -390,11 +390,11 @@ class WepCracker(UpdatableProcess):
         if self.stdout_r and not self.stdout_r.closed:
             for line in self.stdout_r:
                 if 'Failed. Next try with' in line:
-                    if self.state != self.__class__.State.TERMINATED:
-                        self.state = self.__class__.State.CRACKING
+                    if self.state != self.State.TERMINATED:
+                        self.state = self.State.CRACKING
                 elif 'KEY FOUND!' in line:
-                    if self.state != self.__class__.State.TERMINATED:
-                        self.state = self.__class__.State.CRACKING
+                    if self.state != self.State.TERMINATED:
+                        self.state = self.State.CRACKING
                     self.ap.save_psk_file(os.path.join(self.tmp_dir.name, 'psk.hex'))
                     logger.debug('WepCracker found key!')
                 elif 'Decrypted correctly:' in line:
