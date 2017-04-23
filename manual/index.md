@@ -2,9 +2,9 @@
 
 ---
 
-- [Instalation](#Installation)
-  - [Hardware requirements](Hardware-requirements)
-- [Usage](#Usage)
+- [Instalation](#installation)
+  - [Hardware requirements](#hardware-requirements)
+- [Usage](#usage)
 
 ---
 
