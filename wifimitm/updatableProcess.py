@@ -15,7 +15,7 @@ import tempfile
 import warnings
 import weakref
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Sequence, IO, Union
 
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
@@ -54,22 +54,60 @@ class UpdatableProcess(ABC, subprocess.Popen):
     _popen_initialized = False  # important for destructor, see `self.__del__()`
     _finalizer_initialized = False  # important for cleanup called from destructor, see `self.__del__()`
 
-    def __init__(self, args, stdout=None):
+    def __init__(self, args: Sequence[str],
+                 stdin: Optional[IO]=None,
+                 stdout: Union[IO, bool]=True, stderr: Union[IO, bool]=True):
+        """
+        Execute a child program in a new process.
+        :type args: Sequence[str]
+        :param args: sequence of program arguments
+
+        :type stdin: Optional[IO]
+        :param stdin: Write file to process' stdin.
+
+        :type stdout: Union[IO, bool]
+        :param stdout: Write stdout to provided file instead of writing it to file in /tmp. If False is provided, stdout
+        is written to /dev/null. If True is provided, temporary file in temporary directory is created.
+
+        :type stderr: Union[IO, bool]
+        :param stderr: Write stderr to provided file instead of writing it to file in /tmp. If False is provided, stderr
+        is written to /dev/null. If True is provided, temporary file in temporary directory is created.
+        """
         self.cleaned = False
         # temp files (write, read) for stdout and stderr
         self.tmp_dir = tempfile.TemporaryDirectory(prefix=type(self).__name__)
 
-        if stdout:
-            self.stdout_w = stdout
-        else:
+        if stdout is True:
+            # capture output to a temporary file
             self.stdout_w = open(os.path.join(self.tmp_dir.name, 'stdout.txt'), mode='wt', buffering=1)
             self.stdout_r = open(os.path.join(self.tmp_dir.name, 'stdout.txt'), mode='rt', buffering=1)
+        elif stdout is False:
+            # do NOT capture output
+            self.stdout_w = subprocess.DEVNULL
+        else:
+            # write output to provided file
+            self.stdout_w = stdout
 
-        self.stderr_w = open(os.path.join(self.tmp_dir.name, 'stderr.txt'), mode='wt', buffering=1)
-        self.stderr_r = open(os.path.join(self.tmp_dir.name, 'stderr.txt'), mode='rt', buffering=1)
+        if stderr is True:
+            # capture output to a temporary file
+            self.stderr_w = open(os.path.join(self.tmp_dir.name, 'stderr.txt'), mode='wt', buffering=1)
+            self.stderr_r = open(os.path.join(self.tmp_dir.name, 'stderr.txt'), mode='rt', buffering=1)
+        elif stdout is False:
+            # do NOT capture output
+            self.stderr_w = subprocess.DEVNULL
+        else:
+            # write output to provided file
+            self.stderr_w = stdout
 
-        super().__init__(args=args, stdout=self.stdout_w, stderr=self.stderr_w, universal_newlines=True, bufsize=1)
+        super().__init__(args=args, cwd=self.tmp_dir.name,
+                         stdin=stdin, stdout=self.stdout_w, stderr=self.stderr_w, universal_newlines=True, bufsize=1)
         self._popen_initialized = True
+
+        # If subprocess.DEVNULL was passed to Popen above, finalizer doesn't need to close it.
+        if self.stdout_w == subprocess.DEVNULL:
+            self.stdout_w = None
+        if self.stderr_w == subprocess.DEVNULL:
+            self.stderr_w = None
 
         self._finalizer = weakref.finalize(
             self, self._cleanup,
@@ -77,7 +115,10 @@ class UpdatableProcess(ABC, subprocess.Popen):
         self._finalizer_initialized = True
 
         logger.debug('{!s} started; stdout @ {!s}, stderr @ {!s}'.format(
-            type(self).__name__, self.stdout_w.name, self.stderr_w.name))
+            type(self).__name__,
+            self.stdout_w.name if self.stdout_w else None,
+            self.stderr_w.name if self.stderr_w else None)
+        )
 
     @abstractmethod
     def update(self):
@@ -148,11 +189,12 @@ class UpdatableProcess(ABC, subprocess.Popen):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
-        Wait for process and then do cleanup.
+        Stop the process and then do cleanup.
         :param exc_type: Exception type
         :param exc_val: Exception value
         :param exc_tb: Exception traceback information
         """
+        self.stop()
         # "...on exit, standard file descriptors are closed, and the process is waited for."
         # `subprocess — Subprocess management <https://docs.python.org/3/library/subprocess.html#subprocess.Popen>`_
         super().__exit__(exc_type, exc_val, exc_tb)

@@ -107,12 +107,12 @@ class Dumpcap(UpdatableProcess):
         Return initial stats object describing state of the running process.
         :rtype: Dict[str,int]
         """
-        flags = {
+        stats = {
             'packets': 0,
             'received_end': 0,
             'dropped_end': 0
         }
-        return flags
+        return stats
 
     @staticmethod
     def __initial_flags() -> Dict[str, bool]:

@@ -11,7 +11,9 @@ import logging
 import os
 import re
 import subprocess
+from contextlib import contextmanager
 
+from wifimitm.common import WifimitmError
 from .model import WirelessInterface, WirelessAccessPoint
 from .wep import WepAttacker
 from .wpa2 import Wpa2Attacker
@@ -22,7 +24,7 @@ __email__ = 'xvondr20@stud.fit.vutbr.cz'
 logger = logging.getLogger(__name__)
 
 
-class NotCrackedError(Exception):
+class NotCrackedError(WifimitmError):
     pass
 
 
@@ -51,7 +53,7 @@ class WirelessUnlocker(object):
         :type force: bool
         :param force: attack even if network have already been cracked
         """
-        assert self.monitoring_interface.monitor_mode, 'Interface not in monitor mode.'
+        assert self.monitoring_interface.monitor_mode_active, 'Interface not in monitor mode.'
         assert self.ap.encryption in ['OPN', 'WEP', 'WPA', 'WPA2'], "Invalid encryption type '{}'. "\
             .format(self.ap.encryption)  # based on airodump-ng.c from aircrack-ng-1.2-rc4
 
@@ -112,6 +114,12 @@ class WirelessConnecter(object):
         logger.info('Disconnected from ' + self.ap.essid)
         self.ap = None
 
+    @contextmanager
+    def connection(self, ap: WirelessAccessPoint):
+        self.connect(ap=ap)
+        yield
+        self.disconnect()
+
     def __create_profile(self):
         """
         Create profile for netctl.
@@ -160,7 +168,7 @@ class WirelessConnecter(object):
             CalledProcessError if netctl returncode is non-zero
         """
         cmd = ['netctl', 'start', self.profile]
-        process = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        process = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.check_returncode()
 
     def __stop_profile(self, force_profile_name=None):
@@ -174,7 +182,7 @@ class WirelessConnecter(object):
             cmd.append(force_profile_name)
         else:
             cmd.append(self.profile)
-        process = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        process = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.check_returncode()
         logger.debug('OK ' + ' '.join(cmd))
 

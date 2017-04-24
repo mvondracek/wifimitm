@@ -25,9 +25,9 @@ setup(
     long_description=readme(),
     author=__author__,
     author_email=__email__,
-    url='http://www.stud.fit.vutbr.cz/~xvondr20/wifimitm/',
+    url='http://mvondracek.github.io/wifimitm/',
 
-    version='0.5.0',
+    version='0.6.0',
 
     packages=['wifimitm', 'wifimitm.tests'],
 
