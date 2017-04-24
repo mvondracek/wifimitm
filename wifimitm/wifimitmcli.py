@@ -31,7 +31,7 @@ from .requirements import Requirements, RequirementError, UidRequirement, Comman
 from .topology import ArpSpoofing
 from .wpa2 import verify_psk, PassphraseNotInAnyDictionaryError
 
-__version__ = '0.5.0'
+__version__ = '0.6.0'
 __author__ = 'Martin Vondracek'
 __email__ = 'xvondr20@stud.fit.vutbr.cz'
 
