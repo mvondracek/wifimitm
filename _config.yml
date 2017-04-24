@@ -1,3 +1,5 @@
 theme: jekyll-theme-cayman
 title: wifimitm
 description: Wi-Fi Machine-in-the-Middle &ndash; Automation of Man-in-the-Middle Attack on Wi-Fi Networks
+show_downloads: false
+google_analytics: UA-97938010-1
