@@ -1,7 +1,10 @@
-<div style="text-align:center">
-  <img alt="wifimitm logo" src="http://mvondracek.github.io/wifimitm/assets/wifimitm-logo.150x150.png">
-</div>
-# Wi-Fi Machine-in-the-Middle: Automation of MitM Attack on Wi-Fi Networks
+<p align="center">
+  <a href="http://mvondracek.github.io/wifimitm/">
+    <img alt="wifimitm logo" src="http://mvondracek.github.io/wifimitm/assets/wifimitm-logo.150x150.png">
+  </a>
+</p>
+
+## Wi-Fi Machine-in-the-Middle: Automation of MitM Attack on Wi-Fi Networks
 
 ![Is your network secure? How easy is it for someone to eavesdrop on you?](http://mvondracek.github.io/wifimitm/assets/header.png)
 
