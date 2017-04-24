@@ -1,11 +1,11 @@
-![wifimitm pitchslide](/assets/wifimitm-pitchslide-en.png)
+![Is your network secure? How easy is it for someone to eavesdrop on you?](assets/header.png)
 
-* [Videos](/videos/index.html)
-* [Slides](/slides/index.md)
+* [Videos](videos/index.html)
+* [Slides](slides/index.md)
 
-* [Manual](/manual/index.md)
+* [Manual](manual/index.md)
 
-* [Poster (cz)](/assets/wifimitm-poster-cz.pdf)
+* [Poster (cz)](assets/wifimitm-poster-cz.pdf)
 * [Bachelor's thesis](http://www.fit.vutbr.cz/study/DP/BP.php.en?id=18596)
 * [Software product in NES@FIT research group](http://www.fit.vutbr.cz/research/prod/index.php.en?id=487)
 
