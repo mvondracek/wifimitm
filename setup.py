@@ -27,7 +27,7 @@ setup(
     author_email=__email__,
     url='http://mvondracek.github.io/wifimitm/',
 
-    version='0.5.0',
+    version='0.6.0',
 
     packages=['wifimitm', 'wifimitm.tests'],
 
