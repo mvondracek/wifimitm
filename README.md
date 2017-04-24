@@ -1,4 +1,9 @@
-![wifimitm pitchslide](http://mvondracek.github.io/wifimitm/assets/wifimitm-pitchslide-en.png)
+<div style="text-align:center">
+  <img alt="wifimitm logo" src="http://mvondracek.github.io/wifimitm/assets/wifimitm-logo.150x150.png">
+</div>
+# Wi-Fi Machine-in-the-Middle: Automation of MitM Attack on Wi-Fi Networks
+
+![Is your network secure? How easy is it for someone to eavesdrop on you?](http://mvondracek.github.io/wifimitm/assets/header.png)
 
 * [Videos](http://mvondracek.github.io/wifimitm/videos/index.html)
 * [Slides](http://mvondracek.github.io/wifimitm/slides/index.md)
