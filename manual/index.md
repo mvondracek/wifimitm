@@ -9,7 +9,9 @@
 ---
 
 ### Installation
-```bash
+```
+git clone https://github.com/mvondracek/wifimitm.git
+cd wifimitm
 make
 ```
 
