@@ -12,10 +12,10 @@
 
 ![Is your network secure? How easy is it for someone to eavesdrop on you?](http://mvondracek.github.io/wifimitm/assets/header.png)
 
-* [Videos](http://mvondracek.github.io/wifimitm/videos/index.html)
-* [Slides](http://mvondracek.github.io/wifimitm/slides/index.md)
+* [Videos](http://mvondracek.github.io/wifimitm/videos/)
+* [Slides](http://mvondracek.github.io/wifimitm/slides/)
 
-* [Manual](http://mvondracek.github.io/wifimitm/manual/index.md)
+* [Manual](http://mvondracek.github.io/wifimitm/manual/)
 
 * [Poster (cz)](http://mvondracek.github.io/wifimitm/assets/wifimitm-poster-cz.pdf)
 * [Bachelor's thesis](http://www.fit.vutbr.cz/study/DP/BP.php.en?id=18596)
