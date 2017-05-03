@@ -5,7 +5,6 @@
 </p>
 
 ## Wi-Fi Machine-in-the-Middle: Automation of MitM Attack on Wi-Fi Networks
-[![GitHub release](https://img.shields.io/github/release/mvondracek/wifimitm.svg?style=flat-square)]()
 [![Target OS](https://img.shields.io/badge/Target%20OS-Arch%20Linux-0077bb.svg?style=flat-square)](https://www.archlinux.org/)
 [![Python version](https://img.shields.io/badge/Python-3-blue.svg?style=flat-square)](https://www.python.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
