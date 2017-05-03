@@ -1,5 +1,6 @@
 ![Is your network secure? How easy is it for someone to eavesdrop on you?](assets/header.png)
 
+* [Author](author/)
 * [Videos](videos/index.html)
 * [Slides](slides/index.md)
 
