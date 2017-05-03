@@ -11,6 +11,7 @@
 
 ![Is your network secure? How easy is it for someone to eavesdrop on you?](http://mvondracek.github.io/wifimitm/assets/header.png)
 
+* [Author](https://mvondracek.github.io/wifimitm/author/)
 * [Videos](http://mvondracek.github.io/wifimitm/videos/)
 * [Slides](http://mvondracek.github.io/wifimitm/slides/)
 
